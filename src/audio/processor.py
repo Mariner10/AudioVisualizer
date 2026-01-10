@@ -24,11 +24,9 @@ class AudioProcessor:
         
         # Apply Pitch Shifting (simple resampling)
         if pitch != 1.0 and pitch > 0:
-            indices = np.arange(0, len(audio_float), pitch)
-            indices = indices[indices < len(audio_float)]
-            if len(indices) > 0:
-                f = interp1d(np.arange(len(audio_float)), audio_float, kind='linear', fill_value="extrapolate")
-                audio_float = f(indices)
+            old_indices = np.arange(len(audio_float))
+            new_indices = np.arange(0, len(audio_float), pitch)
+            audio_float = np.interp(new_indices, old_indices, audio_float)
         
         # Apply Modulation
         if modulation_freq > 0:
