@@ -22,16 +22,33 @@ class AudioProcessor:
         # Convert to float for processing
         audio_float = data.astype(np.float32)
         
+        # Reshape if multi-channel
+        if self.channels > 1:
+            audio_float = audio_float.reshape(-1, self.channels)
+        
         # Apply Pitch Shifting (simple resampling)
         if pitch != 1.0 and pitch > 0:
-            old_indices = np.arange(len(audio_float))
-            new_indices = np.arange(0, len(audio_float), pitch)
-            audio_float = np.interp(new_indices, old_indices, audio_float)
+            num_samples = len(audio_float)
+            old_indices = np.arange(num_samples)
+            new_indices = np.arange(0, num_samples, pitch)
+            
+            if self.channels > 1:
+                # Interp each channel separately
+                new_audio = np.zeros((len(new_indices), self.channels), dtype=np.float32)
+                for i in range(self.channels):
+                    new_audio[:, i] = np.interp(new_indices, old_indices, audio_float[:, i])
+                audio_float = new_audio
+            else:
+                audio_float = np.interp(new_indices, old_indices, audio_float)
         
         # Apply Modulation
         if modulation_freq > 0:
-            t = np.arange(len(audio_float)) / self.sample_rate
+            num_samples = len(audio_float)
+            t = np.arange(num_samples) / self.sample_rate
             carrier = np.sin(2 * np.pi * modulation_freq * t)
+            
+            if self.channels > 1:
+                carrier = carrier.reshape(-1, 1) # Broadcast across channels
             
             if modulation_type == 'am':
                 audio_float = audio_float * (0.5 + 0.5 * carrier)
@@ -41,6 +58,10 @@ class AudioProcessor:
         # Apply Volume
         if volume != 1.0:
             audio_float *= volume
+            
+        # Flatten back if multi-channel
+        if self.channels > 1:
+            audio_float = audio_float.flatten()
             
         # Clip and convert back to int16
         return np.clip(audio_float, -32768, 32767).astype(np.int16)
