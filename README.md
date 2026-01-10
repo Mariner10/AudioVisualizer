@@ -47,6 +47,7 @@ python src/main.py
 - `j`/`u`: Adjust LPF Cutoff
 - `h`/`y`: Adjust HPF Cutoff
 - `r`: Toggle Recording
+- `c`: Reset all effects
 - `t`: Cycle Display Types
 - `p`: Cycle Color Profiles
 

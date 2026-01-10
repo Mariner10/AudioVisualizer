@@ -25,6 +25,8 @@ class AudioVisualizerApp:
         self.recorder = AudioRecorder(self.config_manager)
         self.terminal_visualizer = TerminalVisualizer(self.config_manager)
         self.server = VisualizerServer(self.config_manager)
+        self.server.on_toggle_recording = self.recorder.toggle
+        self.server.is_recording_callback = lambda: self.recorder.recording
         self.keyboard = KeyboardHandler(self.handle_key)
         
         self.viz_queue = queue.Queue(maxsize=2)
@@ -114,6 +116,14 @@ class AudioVisualizerApp:
             self.config_manager.set('processing.hpf_cutoff', max(0.0, hpf - 100.0))
         elif char == 'r':
             self.recorder.toggle()
+        elif char == 'c':
+            # Reset effects
+            self.config_manager.set('processing.volume', 1.0)
+            self.config_manager.set('processing.pitch', 1.0)
+            self.config_manager.set('processing.timescale', 1.0)
+            self.config_manager.set('processing.modulation_freq', 0.0)
+            self.config_manager.set('processing.lpf_cutoff', 20000.0)
+            self.config_manager.set('processing.hpf_cutoff', 0.0)
 
     def audio_callback(self, data):
         # Apply transformations (volume, pitch, etc.)
@@ -194,7 +204,8 @@ class AudioVisualizerApp:
         print(f"Recording:  {'ON' if self.recorder.recording else 'OFF'} (r)")
         print(f"Input:      {self.config_manager.get('audio.input_type')} ")
         print(f"File:       {os.path.basename(self.config_manager.get('audio.file_path', 'N/A'))}")
-        print("\nPress 'm' to close menu, 'q' to quit.")
+        print("\nPress 'c' to reset all effects.")
+        print("Press 'm' to close menu, 'q' to quit.")
 
     def start(self):
         print("Starting AudioVisualizer...")
