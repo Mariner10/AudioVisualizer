@@ -49,7 +49,7 @@ class TerminalVisualizer:
         self.width, self.height = shutil.get_terminal_size()
 
     def clear(self):
-        sys.stdout.write("\033[H")
+        sys.stdout.write("\033[H\033[J")
         sys.stdout.flush()
 
     def render_bars(self, bars):
@@ -74,10 +74,9 @@ class TerminalVisualizer:
         
         for h in range(self.height - 2, -1, -1):
             line_chars = [ansi_colors[i] if val > h else " " for i, val in enumerate(scaled_bars)]
-            output.append("".join(line_chars))
+            output.append("".join(line_chars) + "\033[K")
         
-        self.clear()
-        sys.stdout.write("\n".join(output) + "\n")
+        sys.stdout.write("\033[H" + "\n".join(output) + "\n")
         sys.stdout.flush()
 
     def render_bidirectional(self, bars):
@@ -101,10 +100,9 @@ class TerminalVisualizer:
                 line_chars = [ansi_colors[i] if val >= abs_h else " " for i, val in enumerate(scaled_bars)]
             else: # center line
                 line_chars = center_colors
-            output.append("".join(line_chars))
+            output.append("".join(line_chars) + "\033[K")
             
-        self.clear()
-        sys.stdout.write("\n".join(output) + "\n")
+        sys.stdout.write("\033[H" + "\n".join(output) + "\n")
         sys.stdout.flush()
 
     def render_line(self, bars):
@@ -144,10 +142,9 @@ class TerminalVisualizer:
                 char = chr(0x2800 + code) if code > 0 else " "
                 color = colors[i] if i < len(colors) else "\033[0m"
                 line += f"{color}{char}\033[0m"
-            output.append(line)
+            output.append(line + "\033[K")
             
-        self.clear()
-        sys.stdout.write("\n".join(output) + "\n")
+        sys.stdout.write("\033[H" + "\n".join(output) + "\n")
         sys.stdout.flush()
 
     def render_braille(self, bars):
@@ -193,8 +190,7 @@ class TerminalVisualizer:
                 
                 color = colors[i] if i < len(colors) else "\033[0m"
                 line += f"{color}{chr(0x2800 + code)}\033[0m"
-            output.append(line)
+            output.append(line + "\033[K")
             
-        self.clear()
-        sys.stdout.write("\n".join(output) + "\n")
+        sys.stdout.write("\033[H" + "\n".join(output) + "\n")
         sys.stdout.flush()
