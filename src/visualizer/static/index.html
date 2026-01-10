@@ -214,24 +214,33 @@
                 return;
             }
 
-            const barWidth = canvas.width / bars.length;
-            const maxVal = Math.max(...bars, 1);
+            // Check if bars is multi-channel
+            const isMultiChannel = Array.isArray(bars[0]);
+            const channels = isMultiChannel ? bars : [bars];
+            const numChannels = channels.length;
+            const channelHeight = canvas.height / numChannels;
             
             const profileName = getNestedValue(config, 'terminal.color_profile', 'default');
             const profile = profiles[profileName] || { type: 'frequency', colors: ['#ffffff'] };
 
-            bars.forEach((val, i) => {
-                const barHeight = (val / maxVal) * canvas.height;
-                
-                if (profile.type === 'solid') {
-                    ctx.fillStyle = profile.color || profile.colors[0];
-                } else if (profile.type === 'amplitude') {
-                    ctx.fillStyle = getInterpolatedColor(profile.colors, val / maxVal);
-                } else { // frequency / gradient
-                    ctx.fillStyle = getInterpolatedColor(profile.colors, i / (bars.length - 1));
-                }
-                
-                ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 1, barHeight);
+            channels.forEach((channelBars, cIdx) => {
+                const barWidth = canvas.width / channelBars.length;
+                const maxVal = Math.max(...channelBars, 1);
+                const yOffset = cIdx * channelHeight;
+
+                channelBars.forEach((val, i) => {
+                    const barHeight = (val / maxVal) * channelHeight;
+                    
+                    if (profile.type === 'solid') {
+                        ctx.fillStyle = profile.color || profile.colors[0];
+                    } else if (profile.type === 'amplitude') {
+                        ctx.fillStyle = getInterpolatedColor(profile.colors, val / maxVal);
+                    } else { // frequency / gradient
+                        ctx.fillStyle = getInterpolatedColor(profile.colors, i / (channelBars.length - 1));
+                    }
+                    
+                    ctx.fillRect(i * barWidth, yOffset + channelHeight - barHeight, barWidth - 1, barHeight);
+                });
             });
 
             requestAnimationFrame(draw);

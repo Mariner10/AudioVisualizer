@@ -119,8 +119,13 @@ class VisualizerServer:
         """
         Queue FFT data and optionally audio data to all connected clients.
         """
+        if isinstance(bars, list):
+            bars_data = [b.tolist() if hasattr(b, 'tolist') else b for b in bars]
+        else:
+            bars_data = bars.tolist() if hasattr(bars, 'tolist') else bars
+            
         data = {
             "type": "visualization",
-            "bars": bars.tolist() if hasattr(bars, 'tolist') else bars
+            "bars": bars_data
         }
         self.queue.put(data)

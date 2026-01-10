@@ -108,15 +108,20 @@ class AudioVisualizerApp:
             if self.show_menu:
                 self.render_menu()
             else:
+                # If multi-channel, average for terminal
+                terminal_bars = bars
+                if isinstance(bars, list):
+                    terminal_bars = np.mean(bars, axis=0)
+                
                 display_type = self.config_manager.get('terminal.display_type', 'bar')
                 if display_type == 'braille':
-                    self.terminal_visualizer.render_braille(bars)
+                    self.terminal_visualizer.render_braille(terminal_bars)
                 elif display_type == 'line':
-                    self.terminal_visualizer.render_line(bars)
+                    self.terminal_visualizer.render_line(terminal_bars)
                 elif display_type == 'bi-directional':
-                    self.terminal_visualizer.render_bidirectional(bars)
+                    self.terminal_visualizer.render_bidirectional(terminal_bars)
                 else:
-                    self.terminal_visualizer.render_bars(bars)
+                    self.terminal_visualizer.render_bars(terminal_bars)
 
     def render_menu(self):
         self.terminal_visualizer.clear()
