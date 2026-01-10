@@ -19,3 +19,19 @@
 ## 4. Documentation & Maintenance
 - [ ] Update README.md with current features and instructions.
 - [ ] Add more comprehensive tests for audio transformations.
+
+## 5. Efficiency & Performance
+- [ ] Make neccesary changes to remove almost all latency from playback / listening.
+- [ ] Research whether or not threading / multiprocessing the calculations ahead of when they should be played would be beneficial.
+- [ ] Develop a caching system for the audio too play, generate ahead when resources are free - re-generating with as little interuptions as possible when LIVE settings are changed.
+
+## 6. Configuration & Customization
+- [ ] Implement Color Profiles system (separate file, highly customizable).
+- [ ] Ensure all parameters are editable via client and saved to config file.
+
+## 7. Testing & Optimization
+- [ ] Add unit tests for FFT and processing logic.
+- [ ] Optimize performance using multiprocessing where necessary.
+
+## 8. Git Management
+- [ ] Use feature branches and push changes frequently.

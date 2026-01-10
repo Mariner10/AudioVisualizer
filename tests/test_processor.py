@@ -41,5 +41,20 @@ class TestAudioProcessor(unittest.TestCase):
         bars = self.processor.get_bars(magnitudes, frequencies, num_bars=10)
         self.assertEqual(len(bars), 10)
 
+    def test_multi_channel_fft(self):
+        self.config_manager.set('audio.channels', 2)
+        self.processor = AudioProcessor(self.config_manager)
+        
+        # Interleaved stereo data: [L, R, L, R, ...]
+        data = np.array([1000, -1000, 2000, -2000, 3000, -3000], dtype=np.int16)
+        magnitudes, frequencies = self.processor.process_fft(data)
+        
+        self.assertEqual(len(magnitudes), 2)
+        self.assertEqual(len(magnitudes[0]), len(magnitudes[1]))
+        
+        bars = self.processor.get_bars(magnitudes, frequencies, num_bars=5)
+        self.assertEqual(len(bars), 2)
+        self.assertEqual(len(bars[0]), 5)
+
 if __name__ == '__main__':
     unittest.main()

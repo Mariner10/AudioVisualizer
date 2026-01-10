@@ -1,20 +1,20 @@
 # Default Configuration for AudioVisualizer
 
 audio:
-  input_type: "microphone" # options: "microphone", "file"
-  file_path: ""
+  input_type: "file" # options: "microphone", "file"
+  file_path: "/Users/carter/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/Traffic - Dear Mr. Fantasy 1967 Remastered.mp3"
   sample_rate: 44100
   chunk_size: 1024
   channels: 1
 
 visualizer:
-  type: "terminal" # options: "terminal", "browser"
+  type: "browser" # options: "terminal", "browser"
   fps: 30
   fft_size: 1024
   frequency_range: [20, 20000]
 
 terminal:
-  display_type: "bar" # options: "bar", "line", "braille"
+  display_type: "line" # options: "bar", "line", "braille"
   color_profile: "default"
 
 browser:
@@ -23,5 +23,5 @@ browser:
 
 processing:
   volume: 1.0
-  pitch: 1.0
-  timescale: 1.0
+  pitch: 0.4
+  timescale: 1

@@ -11,7 +11,39 @@ class AudioProcessor:
         self.channels = config_manager.get('audio.channels', 1)
 
     def apply_transformations(self, data):
-...
+        """
+        Apply volume, pitch, timescale, and modulation transformations.
+        """
+        volume = self.config_manager.get('processing.volume', 1.0)
+        pitch = self.config_manager.get('processing.pitch', 1.0)
+        modulation_freq = self.config_manager.get('processing.modulation_freq', 0.0)
+        modulation_type = self.config_manager.get('processing.modulation_type', 'ring')
+        
+        # Convert to float for processing
+        audio_float = data.astype(np.float32)
+        
+        # Apply Pitch Shifting (simple resampling)
+        if pitch != 1.0 and pitch > 0:
+            indices = np.arange(0, len(audio_float), pitch)
+            indices = indices[indices < len(audio_float)]
+            if len(indices) > 0:
+                f = interp1d(np.arange(len(audio_float)), audio_float, kind='linear', fill_value="extrapolate")
+                audio_float = f(indices)
+        
+        # Apply Modulation
+        if modulation_freq > 0:
+            t = np.arange(len(audio_float)) / self.sample_rate
+            carrier = np.sin(2 * np.pi * modulation_freq * t)
+            
+            if modulation_type == 'am':
+                audio_float = audio_float * (0.5 + 0.5 * carrier)
+            else: # 'ring'
+                audio_float *= carrier
+        
+        # Apply Volume
+        if volume != 1.0:
+            audio_float *= volume
+            
         # Clip and convert back to int16
         return np.clip(audio_float, -32768, 32767).astype(np.int16)
 
@@ -37,6 +69,9 @@ class AudioProcessor:
             return mags, freqs
 
     def _fft_mono(self, data):
+        if len(data) < 2:
+            return np.array([]), np.array([])
+            
         # Windowing to reduce spectral leakage
         window = np.hanning(len(data))
         windowed_data = data.astype(np.float32) * window
@@ -65,12 +100,15 @@ class AudioProcessor:
             
         # Logarithmic scaling for bars
         # Avoid log(0)
+        if len(magnitudes) < 2:
+             return np.full(num_bars, magnitudes[0] if len(magnitudes) > 0 else 0)
+             
         indices = np.round(np.logspace(0, np.log10(len(magnitudes)-1), num_bars+1)).astype(int)
         bars = []
         for i in range(num_bars):
             start, end = indices[i], indices[i+1]
             if start == end:
-                val = magnitudes[start]
+                val = magnitudes[start] if start < len(magnitudes) else 0
             else:
                 val = np.mean(magnitudes[start:end])
             bars.append(val)
