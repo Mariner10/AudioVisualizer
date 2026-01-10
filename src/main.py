@@ -9,6 +9,7 @@ from config.manager import ConfigManager
 from audio.input import MicrophoneInput, FileInput
 from audio.output import AudioOutput
 from audio.processor import AudioProcessor
+from audio.recorder import AudioRecorder
 from visualizer.terminal import TerminalVisualizer
 from visualizer.server import VisualizerServer
 from utils.keyboard import KeyboardHandler
@@ -21,6 +22,7 @@ class AudioVisualizerApp:
         
         self.processor = AudioProcessor(self.config_manager)
         self.output = AudioOutput(self.config_manager)
+        self.recorder = AudioRecorder(self.config_manager)
         self.terminal_visualizer = TerminalVisualizer(self.config_manager)
         self.server = VisualizerServer(self.config_manager)
         self.keyboard = KeyboardHandler(self.handle_key)
@@ -110,10 +112,15 @@ class AudioVisualizerApp:
         elif char == 'h':
             hpf = self.config_manager.get('processing.hpf_cutoff', 0.0)
             self.config_manager.set('processing.hpf_cutoff', max(0.0, hpf - 100.0))
+        elif char == 'r':
+            self.recorder.toggle()
 
     def audio_callback(self, data):
         # Apply transformations (volume, pitch, etc.)
         processed_data = self.processor.apply_transformations(data)
+        
+        # Write to recorder
+        self.recorder.write(processed_data)
         
         # Push to playback queue
         try:
@@ -184,6 +191,7 @@ class AudioVisualizerApp:
         print(f"HPF Cutoff: {self.config_manager.get('processing.hpf_cutoff', 0.0):.0f} (h/y)")
         print(f"Display:    {self.config_manager.get('terminal.display_type', 'bar')} (t)")
         print(f"Color:      {self.config_manager.get('terminal.color_profile', 'default')} (p)")
+        print(f"Recording:  {'ON' if self.recorder.recording else 'OFF'} (r)")
         print(f"Input:      {self.config_manager.get('audio.input_type')} ")
         print(f"File:       {os.path.basename(self.config_manager.get('audio.file_path', 'N/A'))}")
         print("\nPress 'm' to close menu, 'q' to quit.")
