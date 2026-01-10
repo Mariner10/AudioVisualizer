@@ -9,6 +9,7 @@ class AudioProcessor:
         self.fft_size = config_manager.get('visualizer.fft_size', 1024)
         self.freq_range = config_manager.get('visualizer.frequency_range', [20, 20000])
         self.channels = config_manager.get('audio.channels', 1)
+        self.modulation_phase = 0.0
 
     def apply_transformations(self, data):
         """
@@ -44,8 +45,11 @@ class AudioProcessor:
         # Apply Modulation
         if modulation_freq > 0:
             num_samples = len(audio_float)
+            # Maintain phase to avoid clicks
             t = np.arange(num_samples) / self.sample_rate
-            carrier = np.sin(2 * np.pi * modulation_freq * t)
+            phase_step = 2 * np.pi * modulation_freq
+            carrier = np.sin(self.modulation_phase + phase_step * t)
+            self.modulation_phase = (self.modulation_phase + phase_step * num_samples / self.sample_rate) % (2 * np.pi)
             
             if self.channels > 1:
                 carrier = carrier.reshape(-1, 1) # Broadcast across channels
@@ -54,6 +58,8 @@ class AudioProcessor:
                 audio_float = audio_float * (0.5 + 0.5 * carrier)
             else: # 'ring'
                 audio_float *= carrier
+        else:
+            self.modulation_phase = 0.0 # Reset phase if modulation is off
         
         # Apply Volume
         if volume != 1.0:
