@@ -1,24 +1,21 @@
-# TODO: AudioVisualizer
+# Task List - AudioVisualizer Phase 2 (Enhancements)
 
-## Phase 1: Foundation & CLI Visualizer
-- [ ] Initialize Python project structure (pyproject.toml or requirements.txt)
-- [ ] Implement configuration system (YAML/JSON)
-- [ ] Implement Audio Input Module (File and Microphone using PyAudio)
-- [ ] Implement FFT Processing Module (NumPy)
-- [ ] Implement Basic Terminal Visualizer (Braille dots/ASCII)
-- [ ] Implement Audio Output (Playback while visualizing)
+## 1. Color System Improvements
+- [ ] Implement color based on amplitude in `TerminalVisualizer`.
+- [ ] Respect color profile `type` (solid, frequency, amplitude) in `TerminalVisualizer`.
+- [ ] Sync color profiles to Browser frontend.
+- [ ] Implement color profiles in Browser frontend (Canvas rendering).
 
-## Phase 2: Live Editing & Refinement
-- [ ] Implement Live Audio Editing (Volume, Pitch, Timescale)
-- [ ] Add support for modular display types in Terminal
-- [ ] Add support for color profiles in Terminal
+## 2. Audio Processing Enhancements
+- [ ] Implement a more robust "Modulation" system (Carrier frequency adjustment, etc.).
+- [ ] Improve Pitch Shifting (maybe basic Phase Vocoder if possible, or just better interpolation).
+- [ ] Add "Stereo" support (currently it seems to be mono-mixed).
 
-## Phase 3: Web Frontend
-- [ ] Setup Web Server (FastAPI/Flask)
-- [ ] Implement WebSocket for real-time visualization data
-- [ ] Build Browser-based visualizer (Canvas/WebGL)
+## 3. UI/UX Improvements
+- [ ] Add more info to the Terminal Settings Menu.
+- [ ] Improve Browser UI (better sliders, color profile selector).
+- [ ] Add a "File Selector" for the browser if in file mode.
 
-## Phase 4: Testing & Optimization
-- [ ] Write unit tests for FFT and processing
-- [ ] Optimize with Multiprocessing
-- [ ] Finalize configuration UI in both frontends
+## 4. Documentation & Maintenance
+- [ ] Update README.md with current features and instructions.
+- [ ] Add more comprehensive tests for audio transformations.
