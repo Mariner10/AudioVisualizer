@@ -16,23 +16,31 @@ class AudioProcessor:
         volume = self.config_manager.get('processing.volume', 1.0)
         pitch = self.config_manager.get('processing.pitch', 1.0)
         modulation_freq = self.config_manager.get('processing.modulation_freq', 0.0)
+        modulation_type = self.config_manager.get('processing.modulation_type', 'ring')
         
         # Convert to float for processing
         audio_float = data.astype(np.float32)
         
         # Apply Pitch Shifting (simple resampling)
-        if pitch != 1.0:
+        if pitch != 1.0 and pitch > 0:
             indices = np.arange(0, len(audio_float), pitch)
             indices = indices[indices < len(audio_float)]
             if len(indices) > 0:
                 f = interp1d(np.arange(len(audio_float)), audio_float, kind='linear', fill_value="extrapolate")
                 audio_float = f(indices)
         
-        # Apply Modulation (Future goal implementation)
+        # Apply Modulation
         if modulation_freq > 0:
             t = np.arange(len(audio_float)) / self.sample_rate
             carrier = np.sin(2 * np.pi * modulation_freq * t)
-            audio_float *= carrier
+            
+            if modulation_type == 'am':
+                # Amplitude Modulation: (1 + m*carrier) * signal
+                # Here we just use a simple version
+                audio_float = audio_float * (0.5 + 0.5 * carrier)
+            else: # 'ring'
+                # Ring Modulation: carrier * signal
+                audio_float *= carrier
         
         # Apply Volume
         if volume != 1.0:
