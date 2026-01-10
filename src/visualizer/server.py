@@ -40,14 +40,14 @@ class VisualizerServer:
         @self.app.get("/files")
         async def list_files():
             import glob
+            extensions = ('**/*.mp3', '**/*.wav', '**/*.flac')
             files = []
-            for ext in ('*.mp3', '*.wav', '*.flac'):
-                files.extend(glob.glob(ext))
-            # Also check a 'music' folder if it exists
-            if os.path.exists('music'):
-                for ext in ('*.mp3', '*.wav', '*.flac'):
-                    files.extend(glob.glob(os.path.join('music', ext)))
-            return {"files": files}
+            for ext in extensions:
+                files.extend(glob.glob(ext, recursive=True))
+            
+            # Filter out files in .venv or my_venv or .git
+            files = [f for f in files if not any(x in f for x in ['.venv', 'my_venv', '.git'])]
+            return {"files": sorted(files)}
 
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
