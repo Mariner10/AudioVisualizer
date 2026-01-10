@@ -2,39 +2,54 @@ import os
 import sys
 import shutil
 import numpy as np
+import yaml
+from .utils import get_color_gradient
 
 class TerminalVisualizer:
-    def __init__(self, config):
-        self.config = config
-        self.display_type = config.get('terminal.display_type', 'bar')
+    def __init__(self, config_manager):
+        self.config_manager = config_manager
+        self.display_type = config_manager.get('terminal.display_type', 'bar')
         self.width, self.height = shutil.get_terminal_size()
+        self.color_profiles = self.load_color_profiles()
+
+    def load_color_profiles(self):
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'colors.yaml')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                return yaml.safe_load(f).get('profiles', {})
+        return {}
+
+    def get_current_colors(self, num_steps):
+        profile_name = self.config_manager.get('terminal.color_profile', 'default')
+        profile = self.color_profiles.get(profile_name, self.color_profiles.get('default', {}))
+        
+        colors = profile.get('colors', ['#ffffff'])
+        return get_color_gradient(colors, num_steps)
 
     def update_size(self):
         self.width, self.height = shutil.get_terminal_size()
 
     def clear(self):
-        # Move cursor to top-left instead of clearing the whole screen for smoother updates
         sys.stdout.write("\033[H")
         sys.stdout.flush()
 
     def render_bars(self, bars):
         """
         Render audio bars using ASCII.
-        bars: array of magnitudes
         """
         self.update_size()
         num_bars = min(len(bars), self.width)
-        
-        # Scale bars to terminal height
         max_val = np.max(bars) if np.max(bars) > 0 else 1
         scaled_bars = (bars[:num_bars] / max_val * (self.height - 2)).astype(int)
+        
+        colors = self.get_current_colors(num_bars)
 
         output = []
         for h in range(self.height - 2, -1, -1):
             line = ""
-            for val in scaled_bars:
+            for i, val in enumerate(scaled_bars):
                 if val > h:
-                    line += "┃"
+                    line += f"{colors[i]}┃\033[0m"
                 else:
                     line += " "
             output.append(line)
@@ -46,48 +61,33 @@ class TerminalVisualizer:
     def render_braille(self, bars):
         """
         Render audio bars using Braille dots for higher resolution.
-        Each Braille character is 2 dots wide and 4 dots high.
         """
         self.update_size()
-        
-        # We use 2 columns of dots per Braille character
-        # So we can show 2 * width bars
         num_bars = min(len(bars), self.width * 2)
         max_val = np.max(bars) if np.max(bars) > 0 else 1
-        
-        # Scale to dot height (height * 4)
         dot_height = self.height * 4
         scaled_bars = (bars[:num_bars] / max_val * dot_height).astype(int)
         
-        # Pad bars if needed to make it even
         if len(scaled_bars) % 2 != 0:
             scaled_bars = np.append(scaled_bars, 0)
+            
+        colors = self.get_current_colors(len(scaled_bars) // 2)
             
         output = []
         for row in range(self.height - 1, -1, -1):
             line = ""
-            for col in range(0, len(scaled_bars), 2):
+            for i, col in enumerate(range(0, len(scaled_bars), 2)):
                 left_val = scaled_bars[col]
                 right_val = scaled_bars[col+1]
                 
-                # Calculate dots for this Braille character (2x4)
-                # Left dots (1, 2, 3, 7)
                 l_dots = [0, 0, 0, 0]
                 l_fill = max(0, min(4, left_val - row * 4))
-                for i in range(l_fill):
-                    l_dots[i] = 1
+                for j in range(l_fill): l_dots[j] = 1
                 
-                # Right dots (4, 5, 6, 8)
                 r_dots = [0, 0, 0, 0]
                 r_fill = max(0, min(4, right_val - row * 4))
-                for i in range(r_fill):
-                    r_dots[i] = 1
+                for j in range(r_fill): r_dots[j] = 1
                 
-                # Map to Braille unicode
-                # 1 4
-                # 2 5
-                # 3 6
-                # 7 8
                 code = 0
                 if l_dots[0]: code |= (1 << 0)
                 if l_dots[1]: code |= (1 << 1)
@@ -98,7 +98,7 @@ class TerminalVisualizer:
                 if l_dots[3]: code |= (1 << 6)
                 if r_dots[3]: code |= (1 << 7)
                 
-                line += chr(0x2800 + code)
+                line += f"{colors[i]}{chr(0x2800 + code)}\033[0m"
             output.append(line)
             
         self.clear()

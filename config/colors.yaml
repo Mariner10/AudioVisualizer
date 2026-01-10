@@ -1,0 +1,18 @@
+# Color Profiles for AudioVisualizer
+
+profiles:
+  default:
+    type: "frequency" # Color based on frequency
+    colors: ["#ff0000", "#00ff00", "#0000ff"]
+  
+  rainbow:
+    type: "gradient"
+    colors: ["#ff0000", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#ff00ff"]
+  
+  fire:
+    type: "amplitude" # Color based on amplitude
+    colors: ["#ffff00", "#ff8800", "#ff0000"]
+
+  ocean:
+    type: "solid"
+    color: "#0088ff"
