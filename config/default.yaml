@@ -24,4 +24,8 @@ browser:
 processing:
   volume: 1.0
   pitch: 0.4
-  timescale: 1
+  timescale: 1.0
+  modulation_freq: 0.0
+  modulation_type: "ring" # "ring" or "am"
+  lpf_cutoff: 20000.0
+  hpf_cutoff: 0.0
