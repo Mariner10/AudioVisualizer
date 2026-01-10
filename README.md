@@ -8,9 +8,10 @@ A vastly customizable audio tool with visualizer that can utilize the live micro
   - **Terminal**: High-resolution visualization using Braille dots, ASCII bars, and more. Includes a live settings menu and keybindings.
   - **Browser**: Smooth, colorful rendering using HTML5 Canvas and WebSockets for real-time data.
 - **Advanced Audio Processing**:
+  - **High Performance**: Optimized using Numpy/Scipy with decoupled visualization threads for minimal audio latency.
   - Live editing of **Volume**, **Pitch**, and **Timescale**.
-  - **Modulation**: Ring Modulation and Amplitude Modulation (AM) with adjustable carrier frequency.
-  - **Stereo Support**: Independent FFT processing for multiple channels.
+  - **Modulation**: Ring Modulation and Amplitude Modulation (AM) with persistent phase to prevent audio clicks.
+  - **Stereo Support**: Independent FFT processing and correct multi-channel transformation handling.
 - **Customizable Color Profiles**:
   - Define profiles in `config/colors.yaml`.
   - Support for **Frequency-based**, **Amplitude-based**, and **Solid** color modes.
