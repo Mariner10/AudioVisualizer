@@ -19,12 +19,31 @@ class TerminalVisualizer:
                 return yaml.safe_load(f).get('profiles', {})
         return {}
 
-    def get_current_colors(self, num_steps):
+    def get_current_colors(self, bars):
         profile_name = self.config_manager.get('terminal.color_profile', 'default')
         profile = self.color_profiles.get(profile_name, self.color_profiles.get('default', {}))
         
+        profile_type = profile.get('type', 'frequency')
         colors = profile.get('colors', ['#ffffff'])
-        return get_color_gradient(colors, num_steps)
+        
+        if profile_type == 'solid':
+            color = profile.get('color', colors[0])
+            ansi = get_color_gradient([color], 1)[0]
+            return [ansi] * len(bars)
+            
+        if profile_type == 'amplitude':
+            # Map bar value to color gradient
+            max_val = np.max(bars) if np.max(bars) > 0 else 1
+            # We want to pick a color from the gradient based on the bar's relative amplitude
+            gradient = get_color_gradient(colors, 100)
+            result = []
+            for val in bars:
+                idx = int(min(val / max_val * 99, 99))
+                result.append(gradient[idx])
+            return result
+            
+        # Default: frequency / gradient
+        return get_color_gradient(colors, len(bars))
 
     def update_size(self):
         self.width, self.height = shutil.get_terminal_size()
@@ -39,15 +58,15 @@ class TerminalVisualizer:
         """
         self.update_size()
         num_bars = min(len(bars), self.width)
-        max_val = np.max(bars) if np.max(bars) > 0 else 1
+        bars_subset = bars[:num_bars]
+        max_val = np.max(bars_subset) if np.max(bars_subset) > 0 else 1
         
         display_type = self.config_manager.get('terminal.display_type', 'bar')
-        
         if display_type == 'bi-directional':
             return self.render_bidirectional(bars)
 
-        scaled_bars = (bars[:num_bars] / max_val * (self.height - 2)).astype(int)
-        colors = self.get_current_colors(num_bars)
+        scaled_bars = (bars_subset / max_val * (self.height - 2)).astype(int)
+        colors = self.get_current_colors(bars_subset)
 
         output = []
         for h in range(self.height - 2, -1, -1):
@@ -66,11 +85,12 @@ class TerminalVisualizer:
     def render_bidirectional(self, bars):
         self.update_size()
         num_bars = min(len(bars), self.width)
-        max_val = np.max(bars) if np.max(bars) > 0 else 1
+        bars_subset = bars[:num_bars]
+        max_val = np.max(bars_subset) if np.max(bars_subset) > 0 else 1
         
         half_height = (self.height - 2) // 2
-        scaled_bars = (bars[:num_bars] / max_val * half_height).astype(int)
-        colors = self.get_current_colors(num_bars)
+        scaled_bars = (bars_subset / max_val * half_height).astype(int)
+        colors = self.get_current_colors(bars_subset)
 
         output = []
         for h in range(half_height, -half_height - 1, -1):
@@ -96,14 +116,15 @@ class TerminalVisualizer:
         """
         self.update_size()
         num_points = min(len(bars), self.width * 2)
-        max_val = np.max(bars) if np.max(bars) > 0 else 1
+        bars_subset = bars[:num_points]
+        max_val = np.max(bars_subset) if np.max(bars_subset) > 0 else 1
         dot_height = self.height * 4
-        scaled_points = (bars[:num_points] / max_val * (dot_height - 1)).astype(int)
+        scaled_points = (bars_subset / max_val * (dot_height - 1)).astype(int)
         
         if len(scaled_points) % 2 != 0:
             scaled_points = np.append(scaled_points, 0)
             
-        colors = self.get_current_colors(len(scaled_points) // 2)
+        colors = self.get_current_colors(bars_subset[::2]) # One color per braille char
             
         output = []
         for row in range(self.height - 1, -1, -1):
@@ -112,24 +133,20 @@ class TerminalVisualizer:
                 lp = scaled_points[col]
                 rp = scaled_points[col+1]
                 
-                # Check which dots to turn on for a line
-                # We only turn on the dot corresponding to the value at that X position
                 code = 0
-                
-                # Left column dots
                 l_dot_pos = lp - row * 4
                 if 0 <= l_dot_pos < 4:
                     dot_idx = [0, 1, 2, 6][int(l_dot_pos)]
                     code |= (1 << dot_idx)
                 
-                # Right column dots
                 r_dot_pos = rp - row * 4
                 if 0 <= r_dot_pos < 4:
                     dot_idx = [3, 4, 5, 7][int(r_dot_pos)]
                     code |= (1 << dot_idx)
                 
                 char = chr(0x2800 + code) if code > 0 else " "
-                line += f"{colors[i]}{char}\033[0m"
+                color = colors[i] if i < len(colors) else "\033[0m"
+                line += f"{color}{char}\033[0m"
             output.append(line)
             
         self.clear()
@@ -142,14 +159,15 @@ class TerminalVisualizer:
         """
         self.update_size()
         num_bars = min(len(bars), self.width * 2)
-        max_val = np.max(bars) if np.max(bars) > 0 else 1
+        bars_subset = bars[:num_bars]
+        max_val = np.max(bars_subset) if np.max(bars_subset) > 0 else 1
         dot_height = self.height * 4
-        scaled_bars = (bars[:num_bars] / max_val * dot_height).astype(int)
+        scaled_bars = (bars_subset / max_val * dot_height).astype(int)
         
         if len(scaled_bars) % 2 != 0:
             scaled_bars = np.append(scaled_bars, 0)
             
-        colors = self.get_current_colors(len(scaled_bars) // 2)
+        colors = self.get_current_colors(bars_subset[::2]) # One color per braille char
             
         output = []
         for row in range(self.height - 1, -1, -1):
@@ -176,7 +194,8 @@ class TerminalVisualizer:
                 if l_dots[3]: code |= (1 << 6)
                 if r_dots[3]: code |= (1 << 7)
                 
-                line += f"{colors[i]}{chr(0x2800 + code)}\033[0m"
+                color = colors[i] if i < len(colors) else "\033[0m"
+                line += f"{color}{chr(0x2800 + code)}\033[0m"
             output.append(line)
             
         self.clear()
