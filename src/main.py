@@ -52,6 +52,12 @@ class AudioVisualizerApp:
             current = self.config_manager.get('terminal.display_type', 'bar')
             new_idx = (types.index(current) + 1) % len(types) if current in types else 0
             self.config_manager.set('terminal.display_type', types[new_idx])
+        elif char == 'l':
+            ts = self.config_manager.get('processing.timescale', 1.0)
+            self.config_manager.set('processing.timescale', min(2.0, ts + 0.1))
+        elif char == 'k':
+            ts = self.config_manager.get('processing.timescale', 1.0)
+            self.config_manager.set('processing.timescale', max(0.1, ts - 0.1))
         elif char == 'm':
             self.show_menu = not self.show_menu
 
@@ -90,10 +96,11 @@ class AudioVisualizerApp:
     def render_menu(self):
         self.terminal_visualizer.clear()
         print("=== Settings Menu ===")
-        print(f"Volume: {self.config_manager.get('processing.volume', 1.0):.1f} (+/-)")
-        print(f"Pitch: {self.config_manager.get('processing.pitch', 1.0):.1f} ([/])")
-        print(f"Display: {self.config_manager.get('terminal.display_type', 'bar')} (t)")
-        print(f"Input: {self.config_manager.get('audio.input_type')} ")
+        print(f"Volume:    {self.config_manager.get('processing.volume', 1.0):.1f} (+/-)")
+        print(f"Pitch:     {self.config_manager.get('processing.pitch', 1.0):.1f} ([/])")
+        print(f"Timescale: {self.config_manager.get('processing.timescale', 1.0):.1f} (k/l)")
+        print(f"Display:   {self.config_manager.get('terminal.display_type', 'bar')} (t)")
+        print(f"Input:     {self.config_manager.get('audio.input_type')} ")
         print("\nPress 'm' to close menu, 'q' to quit.")
 
     def start(self):

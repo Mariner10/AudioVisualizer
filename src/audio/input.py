@@ -89,10 +89,16 @@ class FileInput(AudioInput):
             if not self.running:
                 break
             
+            # Get current timescale
+            timescale = self.config.get('processing.timescale', 1.0)
+            if timescale <= 0: timescale = 1.0
+            
             chunk = raw_data[i:i + self.chunk_size]
             if len(chunk) < self.chunk_size:
                 # Pad with zeros if last chunk is small
                 chunk = np.pad(chunk, (0, self.chunk_size - len(chunk)))
             
             self._notify_callbacks(chunk)
-            time.sleep(delay)
+            
+            # Adjust delay based on timescale
+            time.sleep(delay / timescale)
