@@ -14,6 +14,7 @@ class AudioVisualizerApp:
     def __init__(self, config_path="config/default.yaml"):
         self.config_manager = ConfigManager(config_path)
         self.config = self.config_manager.config
+        self.config_manager.register_callback(self.on_config_change)
         
         self.processor = AudioProcessor(self.config_manager)
         self.output = AudioOutput(self.config_manager)
@@ -21,6 +22,15 @@ class AudioVisualizerApp:
         self.server = VisualizerServer(self.config_manager)
         self.keyboard = KeyboardHandler(self.handle_key)
         
+        self.input = None
+        self.init_input()
+        self.running = False
+        self.show_menu = False
+
+    def init_input(self):
+        if self.input:
+            self.input.stop()
+            
         input_type = self.config_manager.get('audio.input_type', 'microphone')
         if input_type == 'file':
             self.input = FileInput(self.config_manager)
@@ -28,8 +38,12 @@ class AudioVisualizerApp:
             self.input = MicrophoneInput(self.config_manager)
             
         self.input.register_callback(self.audio_callback)
-        self.running = False
-        self.show_menu = False
+        if hasattr(self, 'running') and self.running:
+            self.input.start()
+
+    def on_config_change(self, key, value):
+        if key in ['audio.input_type', 'audio.file_path']:
+            self.init_input()
 
     def handle_key(self, char):
         if char == 'q':

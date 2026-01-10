@@ -37,6 +37,18 @@ class VisualizerServer:
             from fastapi.responses import FileResponse
             return FileResponse(os.path.join(static_dir, "index.html"))
 
+        @self.app.get("/files")
+        async def list_files():
+            import glob
+            files = []
+            for ext in ('*.mp3', '*.wav', '*.flac'):
+                files.extend(glob.glob(ext))
+            # Also check a 'music' folder if it exists
+            if os.path.exists('music'):
+                for ext in ('*.mp3', '*.wav', '*.flac'):
+                    files.extend(glob.glob(os.path.join('music', ext)))
+            return {"files": files}
+
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             await websocket.accept()

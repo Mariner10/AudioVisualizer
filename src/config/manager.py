@@ -5,6 +5,10 @@ class ConfigManager:
     def __init__(self, config_path="config/default.yaml"):
         self.config_path = config_path
         self.config = self.load_config()
+        self.callbacks = []
+
+    def register_callback(self, callback):
+        self.callbacks.append(callback)
 
     def load_config(self):
         if not os.path.exists(self.config_path):
@@ -28,6 +32,10 @@ class ConfigManager:
         for k in keys[:-1]:
             target = target.setdefault(k, {})
         target[keys[-1]] = value
+        
+        # Notify callbacks
+        for callback in self.callbacks:
+            callback(key, value)
 
     def save(self):
         with open(self.config_path, 'w') as f:
