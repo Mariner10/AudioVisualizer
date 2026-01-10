@@ -19,6 +19,14 @@ class VisualizerServer:
         
         self.setup_routes()
         
+    def load_color_profiles(self):
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'colors.yaml')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                import yaml
+                return yaml.safe_load(f).get('profiles', {})
+        return {}
+
     def setup_routes(self):
         # Serve static files
         static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -33,6 +41,14 @@ class VisualizerServer:
         async def websocket_endpoint(websocket: WebSocket):
             await websocket.accept()
             self.clients.add(websocket)
+            
+            # Send initial config and color profiles
+            await websocket.send_text(json.dumps({
+                "type": "init",
+                "profiles": self.load_color_profiles(),
+                "config": self.config_manager.config
+            }))
+
             try:
                 while True:
                     data = await websocket.receive_text()
@@ -41,6 +57,15 @@ class VisualizerServer:
                         for key, value in msg.get('data', {}).items():
                             self.config_manager.set(key, value)
                         self.config_manager.save()
+                        
+                        # Broadcast config update to others
+                        update_msg = json.dumps({
+                            "type": "config_update",
+                            "config": self.config_manager.config
+                        })
+                        for client in self.clients:
+                            if client != websocket:
+                                await client.send_text(update_msg)
             except WebSocketDisconnect:
                 self.clients.remove(websocket)
 
