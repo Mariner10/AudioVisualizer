@@ -7,31 +7,31 @@
 - [x] Implement color profiles in Browser frontend (Canvas rendering).
 
 ## 2. Audio Processing Enhancements
-- [x] Implement a more robust "Modulation" system (Carrier frequency adjustment, etc.).
-- [x] Improve Pitch Shifting (Resampling implemented).
-- [x] Add "Stereo" support (Independent FFT per channel).
+- [x] Implement a more robust "Modulation" system (Carrier frequency adjustment, phase persistence).
+- [x] Improve Pitch Shifting (Optimized resampling with np.interp).
+- [x] Add "Stereo" support (Independent FFT and correct transformation handling).
 
 ## 3. UI/UX Improvements
 - [x] Add more info to the Terminal Settings Menu.
 - [x] Improve Browser UI (better sliders, color profile selector).
-- [x] Add a "File Selector" for the browser if in file mode.
+- [x] Add a "File Selector" for the browser if in file mode (Recursive discovery).
 
 ## 4. Documentation & Maintenance
 - [x] Update README.md with current features and instructions.
 - [x] Add more comprehensive tests for audio transformations.
 
 ## 5. Efficiency & Performance
-- [x] Optimized processing with Numpy/Scipy.
-- [x] Multi-threading for UI and Server.
-- [x] Real-time config updates without restarting (for most parameters).
+- [x] Make neccesary changes to remove almost all latency from playback / listening.
+- [x] Research whether or not threading / multiprocessing the calculations ahead of when they should be played would be beneficial (Implemented decoupled Viz and Playback threads).
+- [x] Develop a caching system for the audio too play (Implemented playback queue for pre-processed chunks).
 
 ## 6. Configuration & Customization
-- [x] Implement Color Profiles system (separate file `colors.yaml`).
+- [x] Implement Color Profiles system (separate file, highly customizable).
 - [x] Ensure all parameters are editable via client and saved to config file.
 
 ## 7. Testing & Optimization
 - [x] Add unit tests for FFT and processing logic.
-- [x] Optimize performance using efficient array operations.
+- [x] Optimize performance using efficient array operations and optimized loops.
 
 ## 8. Git Management
 - [x] Pushed changes frequently with descriptive commit messages.

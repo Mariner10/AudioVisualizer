@@ -56,5 +56,26 @@ class TestAudioProcessor(unittest.TestCase):
         self.assertEqual(len(bars), 2)
         self.assertEqual(len(bars[0]), 5)
 
+    def test_multi_channel_transformations(self):
+        self.config_manager.set('audio.channels', 2)
+        self.processor = AudioProcessor(self.config_manager)
+        
+        # Interleaved stereo: [L1, R1, L2, R2]
+        data = np.array([1000, 2000, 3000, 4000], dtype=np.int16)
+        
+        # Test Volume
+        self.config_manager.set('processing.volume', 0.5)
+        processed = self.processor.apply_transformations(data)
+        np.testing.assert_array_equal(processed, [500, 1000, 1500, 2000])
+        
+        # Test Pitch Shift (should handle channels independently)
+        self.config_manager.set('processing.pitch', 2.0)
+        self.config_manager.set('processing.volume', 1.0)
+        processed = self.processor.apply_transformations(data)
+        # num_samples per channel is 2. pitch 2.0 means we get 1 sample per channel.
+        # Should be [L1, R1]
+        self.assertEqual(len(processed), 2)
+        np.testing.assert_array_equal(processed, [1000, 2000])
+
 if __name__ == '__main__':
     unittest.main()
