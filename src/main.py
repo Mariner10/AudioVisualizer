@@ -8,6 +8,7 @@ from audio.output import AudioOutput
 from audio.processor import AudioProcessor
 from visualizer.terminal import TerminalVisualizer
 from visualizer.server import VisualizerServer
+from utils.keyboard import KeyboardHandler
 
 class AudioVisualizerApp:
     def __init__(self, config_path="config/default.yaml"):
@@ -18,6 +19,7 @@ class AudioVisualizerApp:
         self.output = AudioOutput(self.config_manager)
         self.terminal_visualizer = TerminalVisualizer(self.config_manager)
         self.server = VisualizerServer(self.config_manager)
+        self.keyboard = KeyboardHandler(self.handle_key)
         
         input_type = self.config_manager.get('audio.input_type', 'microphone')
         if input_type == 'file':
@@ -27,6 +29,30 @@ class AudioVisualizerApp:
             
         self.input.register_callback(self.audio_callback)
         self.running = False
+        self.show_menu = False
+
+    def handle_key(self, char):
+        if char == 'q':
+            self.stop()
+            sys.exit(0)
+        elif char == '+':
+            vol = self.config_manager.get('processing.volume', 1.0)
+            self.config_manager.set('processing.volume', min(2.0, vol + 0.1))
+        elif char == '-':
+            vol = self.config_manager.get('processing.volume', 1.0)
+            self.config_manager.set('processing.volume', max(0.0, vol - 0.1))
+        elif char == ']':
+            pitch = self.config_manager.get('processing.pitch', 1.0)
+            self.config_manager.set('processing.pitch', min(2.0, pitch + 0.1))
+        elif char == '[':
+            pitch = self.config_manager.get('processing.pitch', 1.0)
+            self.config_manager.set('processing.pitch', max(0.5, pitch - 0.1))
+        elif char == 't':
+            current = self.config_manager.get('terminal.display_type', 'bar')
+            new_type = 'braille' if current == 'bar' else 'bar'
+            self.config_manager.set('terminal.display_type', new_type)
+        elif char == 'm':
+            self.show_menu = not self.show_menu
 
     def audio_callback(self, data):
         # Apply transformations (volume, pitch, etc.)
@@ -47,16 +73,29 @@ class AudioVisualizerApp:
         
         # Render in terminal if enabled
         if self.config_manager.get('visualizer.type') == 'terminal':
-            display_type = self.config_manager.get('terminal.display_type', 'bar')
-            if display_type == 'braille':
-                self.terminal_visualizer.render_braille(bars)
+            if self.show_menu:
+                self.render_menu()
             else:
-                self.terminal_visualizer.render_bars(bars)
+                display_type = self.config_manager.get('terminal.display_type', 'bar')
+                if display_type == 'braille':
+                    self.terminal_visualizer.render_braille(bars)
+                else:
+                    self.terminal_visualizer.render_bars(bars)
+
+    def render_menu(self):
+        self.terminal_visualizer.clear()
+        print("=== Settings Menu ===")
+        print(f"Volume: {self.config_manager.get('processing.volume', 1.0):.1f} (+/-)")
+        print(f"Pitch: {self.config_manager.get('processing.pitch', 1.0):.1f} ([/])")
+        print(f"Display: {self.config_manager.get('terminal.display_type', 'bar')} (t)")
+        print(f"Input: {self.config_manager.get('audio.input_type')} ")
+        print("\nPress 'm' to close menu, 'q' to quit.")
 
     def start(self):
         print("Starting AudioVisualizer...")
         self.running = True
         self.server.start()
+        self.keyboard.start()
         self.input.start()
         
         try:
