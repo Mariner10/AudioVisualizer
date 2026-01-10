@@ -82,23 +82,29 @@ class FileInput(AudioInput):
         # Convert to raw data
         raw_data = np.array(self.audio_segment.get_array_of_samples())
         
-        # Calculate delay for real-time playback simulation
-        delay = self.chunk_size / self.sample_rate
-
-        for i in range(0, len(raw_data), self.chunk_size):
-            if not self.running:
-                break
-            
-            # Get current timescale
+        # We'll use a pointer to allow variable read sizes if needed in future
+        # For now, still read chunk_size but adjust sleep
+        i = 0
+        while i < len(raw_data) and self.running:
+            # Get current settings
             timescale = self.config.get('processing.timescale', 1.0)
+            pitch = self.config.get('processing.pitch', 1.0)
             if timescale <= 0: timescale = 1.0
+            if pitch <= 0: pitch = 1.0
             
             chunk = raw_data[i:i + self.chunk_size]
             if len(chunk) < self.chunk_size:
-                # Pad with zeros if last chunk is small
                 chunk = np.pad(chunk, (0, self.chunk_size - len(chunk)))
             
             self._notify_callbacks(chunk)
+            i += self.chunk_size
             
-            # Adjust delay based on timescale
-            time.sleep(delay / timescale)
+            # The duration of the processed chunk (after pitch shifting) is:
+            # (chunk_size / pitch) / sample_rate
+            # And we want to scale that by 1/timescale for speed
+            actual_duration = (len(chunk) / (pitch * self.channels)) / self.sample_rate
+            sleep_time = actual_duration / timescale
+            
+            # Since notify_callbacks might take some time, we should ideally
+            # subtract the elapsed time, but for now simple sleep is improved
+            time.sleep(max(0, sleep_time))
