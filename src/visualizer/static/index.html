@@ -51,6 +51,17 @@
             <input type="range" id="timescale" min="0.1" max="2.0" step="0.1" value="1.0">
         </div>
         <div class="control-group">
+            <label>Modulation Freq</label>
+            <input type="range" id="modFreq" min="0" max="1000" step="10" value="0">
+        </div>
+        <div class="control-group">
+            <label>Mod Type</label>
+            <select id="modType">
+                <option value="ring">Ring</option>
+                <option value="am">AM</option>
+            </select>
+        </div>
+        <div class="control-group">
             <label>Color Profile</label>
             <select id="colorProfile">
                 <option value="default">Default</option>
@@ -108,6 +119,8 @@
             document.getElementById('volume').value = getNestedValue(config, 'processing.volume', 1.0);
             document.getElementById('pitch').value = getNestedValue(config, 'processing.pitch', 1.0);
             document.getElementById('timescale').value = getNestedValue(config, 'processing.timescale', 1.0);
+            document.getElementById('modFreq').value = getNestedValue(config, 'processing.modulation_freq', 0);
+            document.getElementById('modType').value = getNestedValue(config, 'processing.modulation_type', 'ring');
             
             // Update profile selector
             const currentProfile = getNestedValue(config, 'terminal.color_profile', 'default');
@@ -120,94 +133,23 @@
                 colorProfileSelect.appendChild(option);
             }
         }
-
-        function getNestedValue(obj, key, defaultValue) {
-            const keys = key.split('.');
-            let val = obj;
-            for (const k of keys) {
-                if (val && typeof val === 'object' && k in val) {
-                    val = val[k];
-                } else {
-                    return defaultValue;
-                }
-            }
-            return val !== undefined ? val : defaultValue;
-        }
-
-        function getInterpolatedColor(colors, pos) {
-            if (colors.length === 1) return colors[0];
-            
-            const idx = Math.min(Math.floor(pos * (colors.length - 1)), colors.length - 2);
-            const localPos = (pos * (colors.length - 1)) - idx;
-            
-            const c1 = hexToRgb(colors[idx]);
-            const c2 = hexToRgb(colors[idx+1]);
-            
-            const r = Math.round(c1.r * (1 - localPos) + c2.r * localPos);
-            const g = Math.round(c1.g * (1 - localPos) + c2.g * localPos);
-            const b = Math.round(c1.b * (1 - localPos) + c2.b * localPos);
-            
-            return `rgb(${r}, ${g}, ${b})`;
-        }
-
-        function hexToRgb(hex) {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16)
-            } : { r: 255, g: 255, b: 255 };
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            if (bars.length === 0) {
-                requestAnimationFrame(draw);
-                return;
-            }
-
-            const barWidth = canvas.width / bars.length;
-            const maxVal = Math.max(...bars, 1);
-            
-            const profileName = getNestedValue(config, 'terminal.color_profile', 'default');
-            const profile = profiles[profileName] || { type: 'frequency', colors: ['#ffffff'] };
-
-            bars.forEach((val, i) => {
-                const barHeight = (val / maxVal) * canvas.height;
-                
-                if (profile.type === 'solid') {
-                    ctx.fillStyle = profile.color || profile.colors[0];
-                } else if (profile.type === 'amplitude') {
-                    ctx.fillStyle = getInterpolatedColor(profile.colors, val / maxVal);
-                } else { // frequency / gradient
-                    ctx.fillStyle = getInterpolatedColor(profile.colors, i / (bars.length - 1));
-                }
-                
-                ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 1, barHeight);
-            });
-
-            requestAnimationFrame(draw);
-        }
-        draw();
-
-        // Control handlers
-        document.getElementById('volume').oninput = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.volume': parseFloat(e.target.value) }
-            }));
-        };
-        document.getElementById('pitch').oninput = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.pitch': parseFloat(e.target.value) }
-            }));
-        };
+...
         document.getElementById('timescale').oninput = (e) => {
             ws.send(JSON.stringify({
                 type: 'config_update',
                 data: { 'processing.timescale': parseFloat(e.target.value) }
+            }));
+        };
+        document.getElementById('modFreq').oninput = (e) => {
+            ws.send(JSON.stringify({
+                type: 'config_update',
+                data: { 'processing.modulation_freq': parseFloat(e.target.value) }
+            }));
+        };
+        document.getElementById('modType').onchange = (e) => {
+            ws.send(JSON.stringify({
+                type: 'config_update',
+                data: { 'processing.modulation_type': e.target.value }
             }));
         };
         colorProfileSelect.onchange = (e) => {
