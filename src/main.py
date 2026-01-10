@@ -2,6 +2,9 @@ import sys
 import os
 import signal
 import time
+import threading
+import queue
+import numpy as np
 from config.manager import ConfigManager
 from audio.input import MicrophoneInput, FileInput
 from audio.output import AudioOutput
@@ -21,6 +24,9 @@ class AudioVisualizerApp:
         self.terminal_visualizer = TerminalVisualizer(self.config_manager)
         self.server = VisualizerServer(self.config_manager)
         self.keyboard = KeyboardHandler(self.handle_key)
+        
+        self.viz_queue = queue.Queue(maxsize=2)
+        self.viz_thread = None
         
         self.input = None
         self.init_input()
@@ -93,35 +99,48 @@ class AudioVisualizerApp:
         # Play audio back
         self.output.play(processed_data)
         
-        # Process FFT
-        magnitudes, frequencies = self.processor.process_fft(processed_data)
-        
-        # Get bars for visualization
-        num_bars = self.config_manager.get('visualizer.num_bars', 64)
-        bars = self.processor.get_bars(magnitudes, frequencies, num_bars=num_bars)
-        
-        # Send to browser
-        self.server.send_data(bars)
-        
-        # Render in terminal if enabled
-        if self.config_manager.get('visualizer.type') == 'terminal':
-            if self.show_menu:
-                self.render_menu()
-            else:
-                # If multi-channel, average for terminal
-                terminal_bars = bars
-                if isinstance(bars, list):
-                    terminal_bars = np.mean(bars, axis=0)
-                
-                display_type = self.config_manager.get('terminal.display_type', 'bar')
-                if display_type == 'braille':
-                    self.terminal_visualizer.render_braille(terminal_bars)
-                elif display_type == 'line':
-                    self.terminal_visualizer.render_line(terminal_bars)
-                elif display_type == 'bi-directional':
-                    self.terminal_visualizer.render_bidirectional(terminal_bars)
+        # Push to visualization queue (non-blocking if possible)
+        try:
+            self.viz_queue.put_nowait(processed_data)
+        except queue.Full:
+            pass
+
+    def visualization_loop(self):
+        while self.running:
+            try:
+                processed_data = self.viz_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
+
+            # Process FFT
+            magnitudes, frequencies = self.processor.process_fft(processed_data)
+            
+            # Get bars for visualization
+            num_bars = self.config_manager.get('visualizer.num_bars', 64)
+            bars = self.processor.get_bars(magnitudes, frequencies, num_bars=num_bars)
+            
+            # Send to browser
+            self.server.send_data(bars)
+            
+            # Render in terminal if enabled
+            if self.config_manager.get('visualizer.type') == 'terminal':
+                if self.show_menu:
+                    self.render_menu()
                 else:
-                    self.terminal_visualizer.render_bars(terminal_bars)
+                    # If multi-channel, average for terminal
+                    terminal_bars = bars
+                    if isinstance(bars, list):
+                        terminal_bars = np.mean(bars, axis=0)
+                    
+                    display_type = self.config_manager.get('terminal.display_type', 'bar')
+                    if display_type == 'braille':
+                        self.terminal_visualizer.render_braille(terminal_bars)
+                    elif display_type == 'line':
+                        self.terminal_visualizer.render_line(terminal_bars)
+                    elif display_type == 'bi-directional':
+                        self.terminal_visualizer.render_bidirectional(terminal_bars)
+                    else:
+                        self.terminal_visualizer.render_bars(terminal_bars)
 
     def render_menu(self):
         self.terminal_visualizer.clear()
@@ -141,6 +160,11 @@ class AudioVisualizerApp:
         self.running = True
         self.server.start()
         self.keyboard.start()
+        
+        # Start visualization thread
+        self.viz_thread = threading.Thread(target=self.visualization_loop, daemon=True)
+        self.viz_thread.start()
+        
         self.input.start()
         
         try:
@@ -154,6 +178,8 @@ class AudioVisualizerApp:
         self.running = False
         self.input.stop()
         self.output.stop()
+        if self.viz_thread:
+            self.viz_thread.join(timeout=1.0)
 
 if __name__ == "__main__":
     app = AudioVisualizerApp()
