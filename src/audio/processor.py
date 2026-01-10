@@ -11,12 +11,11 @@ class AudioProcessor:
 
     def apply_transformations(self, data):
         """
-        Apply volume, pitch, and timescale transformations to the audio data.
-        data: numpy array (int16)
-        returns: transformed numpy array (int16)
+        Apply volume, pitch, timescale, and modulation transformations.
         """
         volume = self.config_manager.get('processing.volume', 1.0)
         pitch = self.config_manager.get('processing.pitch', 1.0)
+        modulation_freq = self.config_manager.get('processing.modulation_freq', 0.0)
         
         # Convert to float for processing
         audio_float = data.astype(np.float32)
@@ -28,10 +27,12 @@ class AudioProcessor:
             if len(indices) > 0:
                 f = interp1d(np.arange(len(audio_float)), audio_float, kind='linear', fill_value="extrapolate")
                 audio_float = f(indices)
-                # Rescale back to original length to maintain chunk size? 
-                # Actually, for real-time it's better to maintain sample rate.
-                # If we pitch up, we have fewer samples. If we pitch down, we have more.
-                # This affects timescale too.
+        
+        # Apply Modulation (Future goal implementation)
+        if modulation_freq > 0:
+            t = np.arange(len(audio_float)) / self.sample_rate
+            carrier = np.sin(2 * np.pi * modulation_freq * t)
+            audio_float *= carrier
         
         # Apply Volume
         if volume != 1.0:
