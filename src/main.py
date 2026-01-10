@@ -98,6 +98,18 @@ class AudioVisualizerApp:
         elif char == 'b':
             freq = self.config_manager.get('processing.modulation_freq', 0.0)
             self.config_manager.set('processing.modulation_freq', max(0.0, freq - 10.0))
+        elif char == 'u':
+            lpf = self.config_manager.get('processing.lpf_cutoff', 20000.0)
+            self.config_manager.set('processing.lpf_cutoff', min(20000.0, lpf + 500.0))
+        elif char == 'j':
+            lpf = self.config_manager.get('processing.lpf_cutoff', 20000.0)
+            self.config_manager.set('processing.lpf_cutoff', max(100.0, lpf - 500.0))
+        elif char == 'y':
+            hpf = self.config_manager.get('processing.hpf_cutoff', 0.0)
+            self.config_manager.set('processing.hpf_cutoff', min(10000.0, hpf + 100.0))
+        elif char == 'h':
+            hpf = self.config_manager.get('processing.hpf_cutoff', 0.0)
+            self.config_manager.set('processing.hpf_cutoff', max(0.0, hpf - 100.0))
 
     def audio_callback(self, data):
         # Apply transformations (volume, pitch, etc.)
@@ -168,6 +180,8 @@ class AudioVisualizerApp:
         print(f"Pitch:      {self.config_manager.get('processing.pitch', 1.0):.1f} ([/])")
         print(f"Timescale:  {self.config_manager.get('processing.timescale', 1.0):.1f} (k/l)")
         print(f"Mod Freq:   {self.config_manager.get('processing.modulation_freq', 0.0):.1f} (b/n)")
+        print(f"LPF Cutoff: {self.config_manager.get('processing.lpf_cutoff', 20000.0):.0f} (j/u)")
+        print(f"HPF Cutoff: {self.config_manager.get('processing.hpf_cutoff', 0.0):.0f} (h/y)")
         print(f"Display:    {self.config_manager.get('terminal.display_type', 'bar')} (t)")
         print(f"Color:      {self.config_manager.get('terminal.color_profile', 'default')} (p)")
         print(f"Input:      {self.config_manager.get('audio.input_type')} ")
