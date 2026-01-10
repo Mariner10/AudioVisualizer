@@ -1,9 +1,11 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 import asyncio
 import json
 import threading
 import queue
+import os
 
 class VisualizerServer:
     def __init__(self, config_manager):
@@ -18,6 +20,15 @@ class VisualizerServer:
         self.setup_routes()
         
     def setup_routes(self):
+        # Serve static files
+        static_dir = os.path.join(os.path.dirname(__file__), "static")
+        self.app.mount("/static", StaticFiles(directory=static_dir), name="static")
+        
+        @self.app.get("/")
+        async def get():
+            from fastapi.responses import FileResponse
+            return FileResponse(os.path.join(static_dir, "index.html"))
+
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             await websocket.accept()

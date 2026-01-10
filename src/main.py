@@ -7,6 +7,7 @@ from audio.input import MicrophoneInput, FileInput
 from audio.output import AudioOutput
 from audio.processor import AudioProcessor
 from visualizer.terminal import TerminalVisualizer
+from visualizer.server import VisualizerServer
 
 class AudioVisualizerApp:
     def __init__(self, config_path="config/default.yaml"):
@@ -15,7 +16,8 @@ class AudioVisualizerApp:
         
         self.processor = AudioProcessor(self.config_manager)
         self.output = AudioOutput(self.config_manager)
-        self.visualizer = TerminalVisualizer(self.config_manager)
+        self.terminal_visualizer = TerminalVisualizer(self.config_manager)
+        self.server = VisualizerServer(self.config_manager)
         
         input_type = self.config_manager.get('audio.input_type', 'microphone')
         if input_type == 'file':
@@ -37,18 +39,24 @@ class AudioVisualizerApp:
         magnitudes, frequencies = self.processor.process_fft(processed_data)
         
         # Get bars for visualization
-        bars = self.processor.get_bars(magnitudes, frequencies, num_bars=self.visualizer.width)
+        num_bars = self.config_manager.get('visualizer.num_bars', 64)
+        bars = self.processor.get_bars(magnitudes, frequencies, num_bars=num_bars)
         
-        # Render in terminal
-        display_type = self.config_manager.get('terminal.display_type', 'bar')
-        if display_type == 'braille':
-            self.visualizer.render_braille(bars)
-        else:
-            self.visualizer.render_bars(bars)
+        # Send to browser
+        self.server.send_data(bars)
+        
+        # Render in terminal if enabled
+        if self.config_manager.get('visualizer.type') == 'terminal':
+            display_type = self.config_manager.get('terminal.display_type', 'bar')
+            if display_type == 'braille':
+                self.terminal_visualizer.render_braille(bars)
+            else:
+                self.terminal_visualizer.render_bars(bars)
 
     def start(self):
         print("Starting AudioVisualizer...")
         self.running = True
+        self.server.start()
         self.input.start()
         
         try:

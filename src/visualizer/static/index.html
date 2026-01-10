@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioVisualizer</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #111;
+            color: #eee;
+            font-family: sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #canvas {
+            flex-grow: 1;
+            width: 100%;
+        }
+        #controls {
+            padding: 10px;
+            background: #222;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="control-group">
+            <label>Volume</label>
+            <input type="range" id="volume" min="0" max="2" step="0.1" value="1.0">
+        </div>
+        <div class="control-group">
+            <label>Pitch</label>
+            <input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+        <div id="status">Disconnected</div>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        
+        let bars = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - document.getElementById('controls').offsetHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const ws = new WebSocket(`ws://${location.host}/ws`);
+        
+        ws.onopen = () => {
+            status.textContent = 'Connected';
+            status.style.color = 'green';
+        };
+        
+        ws.onclose = () => {
+            status.textContent = 'Disconnected';
+            status.style.color = 'red';
+        };
+        
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'visualization') {
+                bars = data.bars;
+            }
+        };
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (bars.length === 0) {
+                requestAnimationFrame(draw);
+                return;
+            }
+
+            const barWidth = canvas.width / bars.length;
+            const maxVal = Math.max(...bars, 1);
+
+            bars.forEach((val, i) => {
+                const barHeight = (val / maxVal) * canvas.height;
+                
+                // Color based on frequency
+                const hue = (i / bars.length) * 360;
+                ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
+                
+                ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 1, barHeight);
+            });
+
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        // Control handlers
+        document.getElementById('volume').oninput = (e) => {
+            ws.send(JSON.stringify({
+                type: 'config_update',
+                data: { 'processing.volume': parseFloat(e.target.value) }
+            }));
+        };
+        document.getElementById('pitch').oninput = (e) => {
+            ws.send(JSON.stringify({
+                type: 'config_update',
+                data: { 'processing.pitch': parseFloat(e.target.value) }
+            }));
+        };
+    </script>
+</body>
+</html>
