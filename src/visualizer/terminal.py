@@ -69,14 +69,12 @@ class TerminalVisualizer:
         colors = self.get_current_colors(bars_subset)
 
         output = []
+        # Pre-build color components to avoid repeat lookups
+        ansi_colors = [f"{c}┃\033[0m" for c in colors]
+        
         for h in range(self.height - 2, -1, -1):
-            line = ""
-            for i, val in enumerate(scaled_bars):
-                if val > h:
-                    line += f"{colors[i]}┃\033[0m"
-                else:
-                    line += " "
-            output.append(line)
+            line_chars = [ansi_colors[i] if val > h else " " for i, val in enumerate(scaled_bars)]
+            output.append("".join(line_chars))
         
         self.clear()
         sys.stdout.write("\n".join(output) + "\n")
@@ -91,20 +89,19 @@ class TerminalVisualizer:
         half_height = (self.height - 2) // 2
         scaled_bars = (bars_subset / max_val * half_height).astype(int)
         colors = self.get_current_colors(bars_subset)
+        ansi_colors = [f"{c}┃\033[0m" for c in colors]
+        center_colors = [f"{c}━\033[0m" for c in colors]
 
         output = []
         for h in range(half_height, -half_height - 1, -1):
-            line = ""
-            for i, val in enumerate(scaled_bars):
-                if h > 0:
-                    if val >= h: line += f"{colors[i]}┃\033[0m"
-                    else: line += " "
-                elif h < 0:
-                    if val >= abs(h): line += f"{colors[i]}┃\033[0m"
-                    else: line += " "
-                else: # center line
-                    line += f"{colors[i]}━\033[0m"
-            output.append(line)
+            if h > 0:
+                line_chars = [ansi_colors[i] if val >= h else " " for i, val in enumerate(scaled_bars)]
+            elif h < 0:
+                abs_h = abs(h)
+                line_chars = [ansi_colors[i] if val >= abs_h else " " for i, val in enumerate(scaled_bars)]
+            else: # center line
+                line_chars = center_colors
+            output.append("".join(line_chars))
             
         self.clear()
         sys.stdout.write("\n".join(output) + "\n")
