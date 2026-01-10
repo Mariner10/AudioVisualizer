@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.fft import rfft, rfftfreq
 from scipy.interpolate import interp1d
+from scipy import signal
 
 class AudioProcessor:
     def __init__(self, config_manager):
@@ -10,6 +11,12 @@ class AudioProcessor:
         self.freq_range = config_manager.get('visualizer.frequency_range', [20, 20000])
         self.channels = config_manager.get('audio.channels', 1)
         self.modulation_phase = 0.0
+        
+        # Filter states
+        self.lpf_zi = None
+        self.hpf_zi = None
+        self.last_lpf_cutoff = None
+        self.last_hpf_cutoff = None
 
     def apply_transformations(self, data):
         """
@@ -60,6 +67,38 @@ class AudioProcessor:
                 audio_float *= carrier
         else:
             self.modulation_phase = 0.0 # Reset phase if modulation is off
+
+        # Apply Filters
+        lpf_cutoff = self.config_manager.get('processing.lpf_cutoff', 20000.0)
+        hpf_cutoff = self.config_manager.get('processing.hpf_cutoff', 0.0)
+
+        # Low Pass Filter
+        if lpf_cutoff < self.sample_rate / 2:
+            if lpf_cutoff != self.last_lpf_cutoff:
+                # Design filter
+                b, a = signal.butter(4, lpf_cutoff, btype='low', fs=self.sample_rate)
+                self.lpf_b, self.lpf_a = b, a
+                # Initialize zi for all channels
+                self.lpf_zi = signal.lfilter_zi(b, a)
+                if self.channels > 1:
+                    self.lpf_zi = np.tile(self.lpf_zi, (self.channels, 1)).T
+                self.last_lpf_cutoff = lpf_cutoff
+            
+            audio_float, self.lpf_zi = signal.lfilter(self.lpf_b, self.lpf_a, audio_float, axis=0, zi=self.lpf_zi)
+
+        # High Pass Filter
+        if hpf_cutoff > 0:
+            if hpf_cutoff != self.last_hpf_cutoff:
+                # Design filter
+                b, a = signal.butter(4, hpf_cutoff, btype='high', fs=self.sample_rate)
+                self.hpf_b, self.hpf_a = b, a
+                # Initialize zi for all channels
+                self.hpf_zi = signal.lfilter_zi(b, a)
+                if self.channels > 1:
+                    self.hpf_zi = np.tile(self.hpf_zi, (self.channels, 1)).T
+                self.last_hpf_cutoff = hpf_cutoff
+            
+            audio_float, self.hpf_zi = signal.lfilter(self.hpf_b, self.hpf_a, audio_float, axis=0, zi=self.hpf_zi)
         
         # Apply Volume
         if volume != 1.0:
