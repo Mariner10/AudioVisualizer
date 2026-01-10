@@ -21,11 +21,6 @@ class AudioOutput:
         Play a chunk of audio data.
         data: numpy array (int16)
         """
-        # Apply volume if needed (part of live editing)
-        volume = self.config.get('processing.volume', 1.0)
-        if volume != 1.0:
-            data = (data.astype(np.float32) * volume).clip(-32768, 32767).astype(np.int16)
-        
         self.stream.write(data.tobytes())
 
     def stop(self):

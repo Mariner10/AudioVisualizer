@@ -27,11 +27,14 @@ class AudioVisualizerApp:
         self.running = False
 
     def audio_callback(self, data):
+        # Apply transformations (volume, pitch, etc.)
+        processed_data = self.processor.apply_transformations(data)
+        
         # Play audio back
-        self.output.play(data)
+        self.output.play(processed_data)
         
         # Process FFT
-        magnitudes, frequencies = self.processor.process_fft(data)
+        magnitudes, frequencies = self.processor.process_fft(processed_data)
         
         # Get bars for visualization
         bars = self.processor.get_bars(magnitudes, frequencies, num_bars=self.visualizer.width)
