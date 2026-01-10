@@ -20,6 +20,8 @@ class TestAudioProcessor(unittest.TestCase):
     def test_apply_transformations_volume(self):
         data = np.array([1000, 2000, 3000], dtype=np.int16)
         self.config_manager.set('processing.volume', 0.5)
+        self.config_manager.set('processing.lpf_cutoff', 22050.0)
+        self.config_manager.set('processing.hpf_cutoff', 0.0)
         processed = self.processor.apply_transformations(data)
         np.testing.assert_array_equal(processed, [500, 1000, 1500])
 
@@ -65,6 +67,8 @@ class TestAudioProcessor(unittest.TestCase):
         
         # Test Volume
         self.config_manager.set('processing.volume', 0.5)
+        self.config_manager.set('processing.lpf_cutoff', 22050.0)
+        self.config_manager.set('processing.hpf_cutoff', 0.0)
         processed = self.processor.apply_transformations(data)
         np.testing.assert_array_equal(processed, [500, 1000, 1500, 2000])
         
@@ -76,6 +80,42 @@ class TestAudioProcessor(unittest.TestCase):
         # Should be [L1, R1]
         self.assertEqual(len(processed), 2)
         np.testing.assert_array_equal(processed, [1000, 2000])
+
+    def test_filters(self):
+        # Generate a signal with 100Hz and 10000Hz components
+        fs = 44100
+        duration = 0.5
+        t = np.linspace(0, duration, int(fs * duration), endpoint=False)
+        low_freq = 100
+        high_freq = 10000
+        data = (np.sin(2 * np.pi * low_freq * t) * 5000 + np.sin(2 * np.pi * high_freq * t) * 5000).astype(np.int16)
+        
+        # Test LPF at 1000Hz (should remove high_freq)
+        self.config_manager.set('processing.lpf_cutoff', 1000.0)
+        self.config_manager.set('processing.hpf_cutoff', 0.0)
+        self.processor = AudioProcessor(self.config_manager) # Reset
+        processed_lpf = self.processor.apply_transformations(data)
+        
+        # Check FFT of LPF signal
+        m_lpf, f_lpf = self.processor.process_fft(processed_lpf)
+        # Find magnitudes at low and high freqs
+        low_idx = np.argmin(np.abs(f_lpf - low_freq))
+        high_idx = np.argmin(np.abs(f_lpf - high_freq))
+        
+        self.assertGreater(m_lpf[low_idx], m_lpf[high_idx] * 10) # Low freq should be much stronger than high freq
+        
+        # Test HPF at 5000Hz (should remove low_freq)
+        self.config_manager.set('processing.lpf_cutoff', 22050.0)
+        self.config_manager.set('processing.hpf_cutoff', 5000.0)
+        self.processor = AudioProcessor(self.config_manager) # Reset
+        processed_hpf = self.processor.apply_transformations(data)
+        
+        # Check FFT of HPF signal
+        m_hpf, f_hpf = self.processor.process_fft(processed_hpf)
+        low_idx = np.argmin(np.abs(f_hpf - low_freq))
+        high_idx = np.argmin(np.abs(f_hpf - high_freq))
+        
+        self.assertGreater(m_hpf[high_idx], m_hpf[low_idx] * 10) # High freq should be much stronger than low freq
 
 if __name__ == '__main__':
     unittest.main()
