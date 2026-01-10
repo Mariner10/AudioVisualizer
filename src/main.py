@@ -46,7 +46,7 @@ class AudioVisualizerApp:
             self.config_manager.set('processing.pitch', min(2.0, pitch + 0.1))
         elif char == '[':
             pitch = self.config_manager.get('processing.pitch', 1.0)
-            self.config_manager.set('processing.pitch', max(0.5, pitch - 0.1))
+            self.config_manager.set('processing.pitch', max(0.1, pitch - 0.1))
         elif char == 't':
             types = ['bar', 'braille', 'line', 'bi-directional']
             current = self.config_manager.get('terminal.display_type', 'bar')
@@ -58,8 +58,19 @@ class AudioVisualizerApp:
         elif char == 'k':
             ts = self.config_manager.get('processing.timescale', 1.0)
             self.config_manager.set('processing.timescale', max(0.1, ts - 0.1))
+        elif char == 'p':
+            profiles = list(self.terminal_visualizer.color_profiles.keys())
+            current = self.config_manager.get('terminal.color_profile', 'default')
+            new_idx = (profiles.index(current) + 1) % len(profiles) if current in profiles else 0
+            self.config_manager.set('terminal.color_profile', profiles[new_idx])
         elif char == 'm':
             self.show_menu = not self.show_menu
+        elif char == 'n':
+            freq = self.config_manager.get('processing.modulation_freq', 0.0)
+            self.config_manager.set('processing.modulation_freq', min(1000.0, freq + 10.0))
+        elif char == 'b':
+            freq = self.config_manager.get('processing.modulation_freq', 0.0)
+            self.config_manager.set('processing.modulation_freq', max(0.0, freq - 10.0))
 
     def audio_callback(self, data):
         # Apply transformations (volume, pitch, etc.)
@@ -96,11 +107,14 @@ class AudioVisualizerApp:
     def render_menu(self):
         self.terminal_visualizer.clear()
         print("=== Settings Menu ===")
-        print(f"Volume:    {self.config_manager.get('processing.volume', 1.0):.1f} (+/-)")
-        print(f"Pitch:     {self.config_manager.get('processing.pitch', 1.0):.1f} ([/])")
-        print(f"Timescale: {self.config_manager.get('processing.timescale', 1.0):.1f} (k/l)")
-        print(f"Display:   {self.config_manager.get('terminal.display_type', 'bar')} (t)")
-        print(f"Input:     {self.config_manager.get('audio.input_type')} ")
+        print(f"Volume:     {self.config_manager.get('processing.volume', 1.0):.1f} (+/-)")
+        print(f"Pitch:      {self.config_manager.get('processing.pitch', 1.0):.1f} ([/])")
+        print(f"Timescale:  {self.config_manager.get('processing.timescale', 1.0):.1f} (k/l)")
+        print(f"Mod Freq:   {self.config_manager.get('processing.modulation_freq', 0.0):.1f} (b/n)")
+        print(f"Display:    {self.config_manager.get('terminal.display_type', 'bar')} (t)")
+        print(f"Color:      {self.config_manager.get('terminal.color_profile', 'default')} (p)")
+        print(f"Input:      {self.config_manager.get('audio.input_type')} ")
+        print(f"File:       {os.path.basename(self.config_manager.get('audio.file_path', 'N/A'))}")
         print("\nPress 'm' to close menu, 'q' to quit.")
 
     def start(self):
