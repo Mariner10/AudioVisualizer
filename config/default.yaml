@@ -1,0 +1,27 @@
+# Default Configuration for AudioVisualizer
+
+audio:
+  input_type: "microphone" # options: "microphone", "file"
+  file_path: ""
+  sample_rate: 44100
+  chunk_size: 1024
+  channels: 1
+
+visualizer:
+  type: "terminal" # options: "terminal", "browser"
+  fps: 30
+  fft_size: 1024
+  frequency_range: [20, 20000]
+
+terminal:
+  display_type: "bar" # options: "bar", "line", "braille"
+  color_profile: "default"
+
+browser:
+  port: 8000
+  host: "0.0.0.0"
+
+processing:
+  volume: 1.0
+  pitch: 1.0
+  timescale: 1.0
