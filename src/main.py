@@ -48,9 +48,10 @@ class AudioVisualizerApp:
             pitch = self.config_manager.get('processing.pitch', 1.0)
             self.config_manager.set('processing.pitch', max(0.5, pitch - 0.1))
         elif char == 't':
+            types = ['bar', 'braille', 'line', 'bi-directional']
             current = self.config_manager.get('terminal.display_type', 'bar')
-            new_type = 'braille' if current == 'bar' else 'bar'
-            self.config_manager.set('terminal.display_type', new_type)
+            new_idx = (types.index(current) + 1) % len(types) if current in types else 0
+            self.config_manager.set('terminal.display_type', types[new_idx])
         elif char == 'm':
             self.show_menu = not self.show_menu
 
@@ -79,6 +80,10 @@ class AudioVisualizerApp:
                 display_type = self.config_manager.get('terminal.display_type', 'bar')
                 if display_type == 'braille':
                     self.terminal_visualizer.render_braille(bars)
+                elif display_type == 'line':
+                    self.terminal_visualizer.render_line(bars)
+                elif display_type == 'bi-directional':
+                    self.terminal_visualizer.render_bidirectional(bars)
                 else:
                     self.terminal_visualizer.render_bars(bars)
 

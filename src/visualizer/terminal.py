@@ -40,8 +40,13 @@ class TerminalVisualizer:
         self.update_size()
         num_bars = min(len(bars), self.width)
         max_val = np.max(bars) if np.max(bars) > 0 else 1
-        scaled_bars = (bars[:num_bars] / max_val * (self.height - 2)).astype(int)
         
+        display_type = self.config_manager.get('terminal.display_type', 'bar')
+        
+        if display_type == 'bi-directional':
+            return self.render_bidirectional(bars)
+
+        scaled_bars = (bars[:num_bars] / max_val * (self.height - 2)).astype(int)
         colors = self.get_current_colors(num_bars)
 
         output = []
@@ -54,6 +59,79 @@ class TerminalVisualizer:
                     line += " "
             output.append(line)
         
+        self.clear()
+        sys.stdout.write("\n".join(output) + "\n")
+        sys.stdout.flush()
+
+    def render_bidirectional(self, bars):
+        self.update_size()
+        num_bars = min(len(bars), self.width)
+        max_val = np.max(bars) if np.max(bars) > 0 else 1
+        
+        half_height = (self.height - 2) // 2
+        scaled_bars = (bars[:num_bars] / max_val * half_height).astype(int)
+        colors = self.get_current_colors(num_bars)
+
+        output = []
+        for h in range(half_height, -half_height - 1, -1):
+            line = ""
+            for i, val in enumerate(scaled_bars):
+                if h > 0:
+                    if val >= h: line += f"{colors[i]}┃\033[0m"
+                    else: line += " "
+                elif h < 0:
+                    if val >= abs(h): line += f"{colors[i]}┃\033[0m"
+                    else: line += " "
+                else: # center line
+                    line += f"{colors[i]}━\033[0m"
+            output.append(line)
+            
+        self.clear()
+        sys.stdout.write("\n".join(output) + "\n")
+        sys.stdout.flush()
+
+    def render_line(self, bars):
+        """
+        Render a smooth line using Braille.
+        """
+        self.update_size()
+        num_points = min(len(bars), self.width * 2)
+        max_val = np.max(bars) if np.max(bars) > 0 else 1
+        dot_height = self.height * 4
+        scaled_points = (bars[:num_points] / max_val * (dot_height - 1)).astype(int)
+        
+        if len(scaled_points) % 2 != 0:
+            scaled_points = np.append(scaled_points, 0)
+            
+        colors = self.get_current_colors(len(scaled_points) // 2)
+            
+        output = []
+        for row in range(self.height - 1, -1, -1):
+            line = ""
+            for i, col in enumerate(range(0, len(scaled_points), 2)):
+                lp = scaled_points[col]
+                rp = scaled_points[col+1]
+                
+                # Check which dots to turn on for a line
+                # We only turn on the dot corresponding to the value at that X position
+                code = 0
+                
+                # Left column dots
+                l_dot_pos = lp - row * 4
+                if 0 <= l_dot_pos < 4:
+                    dot_idx = [0, 1, 2, 6][int(l_dot_pos)]
+                    code |= (1 << dot_idx)
+                
+                # Right column dots
+                r_dot_pos = rp - row * 4
+                if 0 <= r_dot_pos < 4:
+                    dot_idx = [3, 4, 5, 7][int(r_dot_pos)]
+                    code |= (1 << dot_idx)
+                
+                char = chr(0x2800 + code) if code > 0 else " "
+                line += f"{colors[i]}{char}\033[0m"
+            output.append(line)
+            
         self.clear()
         sys.stdout.write("\n".join(output) + "\n")
         sys.stdout.flush()
