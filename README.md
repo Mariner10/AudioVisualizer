@@ -10,7 +10,9 @@ A vastly customizable audio tool with visualizer that can utilize the live micro
 - **Advanced Audio Processing**:
   - **High Performance**: Optimized using Numpy/Scipy with decoupled visualization threads for minimal audio latency.
   - Live editing of **Volume**, **Pitch**, and **Timescale**.
+  - **Filters**: Real-time **Low Pass (LPF)** and **High Pass (HPF)** filters with adjustable cutoff frequencies.
   - **Modulation**: Ring Modulation and Amplitude Modulation (AM) with persistent phase to prevent audio clicks.
+  - **Recording**: Save processed audio directly to WAV files from either the terminal or browser interface.
   - **Stereo Support**: Independent FFT processing and correct multi-channel transformation handling.
 - **Customizable Color Profiles**:
   - Define profiles in `config/colors.yaml`.
@@ -42,6 +44,9 @@ python src/main.py
 - `[`/`]`: Adjust Pitch
 - `k`/`l`: Adjust Timescale
 - `b`/`n`: Adjust Modulation Frequency
+- `j`/`u`: Adjust LPF Cutoff
+- `h`/`y`: Adjust HPF Cutoff
+- `r`: Toggle Recording
 - `t`: Cycle Display Types
 - `p`: Cycle Color Profiles
 
