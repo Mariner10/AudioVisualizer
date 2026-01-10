@@ -62,6 +62,14 @@
             </select>
         </div>
         <div class="control-group">
+            <label>LPF Cutoff</label>
+            <input type="range" id="lpf" min="100" max="20000" step="500" value="20000">
+        </div>
+        <div class="control-group">
+            <label>HPF Cutoff</label>
+            <input type="range" id="hpf" min="0" max="10000" step="100" value="0">
+        </div>
+        <div class="control-group">
             <label>Color Profile</label>
             <select id="colorProfile">
                 <option value="default">Default</option>
@@ -72,6 +80,10 @@
             <select id="audioFile">
                 <option value="">None</option>
             </select>
+        </div>
+        <div class="control-group">
+            <label>Record</label>
+            <button id="recordBtn" style="background: #444; color: white; border: none; padding: 5px 10px; cursor: pointer;">Record</button>
         </div>
         <div id="status">Disconnected</div>
     </div>
@@ -128,6 +140,7 @@
             const data = JSON.parse(event.data);
             if (data.type === 'visualization') {
                 bars = data.bars;
+                updateRecordingUI(data.recording);
             } else if (data.type === 'init') {
                 profiles = data.profiles;
                 config = data.config;
@@ -138,6 +151,17 @@
             }
         };
 
+        function updateRecordingUI(isRecording) {
+            const btn = document.getElementById('recordBtn');
+            if (isRecording) {
+                btn.style.backgroundColor = 'red';
+                btn.textContent = 'Stop Recording';
+            } else {
+                btn.style.backgroundColor = '#444';
+                btn.textContent = 'Record';
+            }
+        }
+
         function updateUI() {
             // Update sliders
             document.getElementById('volume').value = getNestedValue(config, 'processing.volume', 1.0);
@@ -145,6 +169,8 @@
             document.getElementById('timescale').value = getNestedValue(config, 'processing.timescale', 1.0);
             document.getElementById('modFreq').value = getNestedValue(config, 'processing.modulation_freq', 0);
             document.getElementById('modType').value = getNestedValue(config, 'processing.modulation_type', 'ring');
+            document.getElementById('lpf').value = getNestedValue(config, 'processing.lpf_cutoff', 20000);
+            document.getElementById('hpf').value = getNestedValue(config, 'processing.hpf_cutoff', 0);
             
             // Update profile selector
             const currentProfile = getNestedValue(config, 'terminal.color_profile', 'default');
@@ -276,6 +302,23 @@
             ws.send(JSON.stringify({
                 type: 'config_update',
                 data: { 'processing.modulation_type': e.target.value }
+            }));
+        };
+        document.getElementById('lpf').oninput = (e) => {
+            ws.send(JSON.stringify({
+                type: 'config_update',
+                data: { 'processing.lpf_cutoff': parseFloat(e.target.value) }
+            }));
+        };
+        document.getElementById('hpf').oninput = (e) => {
+            ws.send(JSON.stringify({
+                type: 'config_update',
+                data: { 'processing.hpf_cutoff': parseFloat(e.target.value) }
+            }));
+        };
+        document.getElementById('recordBtn').onclick = (e) => {
+            ws.send(JSON.stringify({
+                type: 'toggle_recording'
             }));
         };
         colorProfileSelect.onchange = (e) => {

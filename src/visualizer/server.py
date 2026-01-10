@@ -16,8 +16,15 @@ class VisualizerServer:
         self.port = config_manager.get('browser.port', 8000)
         self.loop = None
         self.queue = queue.Queue()
+        self.on_toggle_recording = None
+        self.is_recording_callback = None
         
         self.setup_routes()
+
+    def is_recording(self):
+        if self.is_recording_callback:
+            return self.is_recording_callback()
+        return False
         
     def load_color_profiles(self):
         config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'colors.yaml')
@@ -78,6 +85,14 @@ class VisualizerServer:
                         for client in self.clients:
                             if client != websocket:
                                 await client.send_text(update_msg)
+                    elif msg.get('type') == 'toggle_recording':
+                        if self.on_toggle_recording:
+                            self.on_toggle_recording()
+                    elif msg.get('type') == 'get_status':
+                        await websocket.send_text(json.dumps({
+                            "type": "status",
+                            "recording": self.is_recording() if hasattr(self, 'is_recording') else False
+                        }))
             except WebSocketDisconnect:
                 self.clients.remove(websocket)
 
@@ -126,6 +141,7 @@ class VisualizerServer:
             
         data = {
             "type": "visualization",
-            "bars": bars_data
+            "bars": bars_data,
+            "recording": self.is_recording()
         }
         self.queue.put(data)
