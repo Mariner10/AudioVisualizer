@@ -26,7 +26,9 @@ class AudioVisualizerApp:
         self.keyboard = KeyboardHandler(self.handle_key)
         
         self.viz_queue = queue.Queue(maxsize=2)
+        self.playback_queue = queue.Queue(maxsize=5)
         self.viz_thread = None
+        self.playback_thread = None
         
         self.input = None
         self.init_input()
@@ -50,6 +52,11 @@ class AudioVisualizerApp:
     def on_config_change(self, key, value):
         if key in ['audio.input_type', 'audio.file_path']:
             self.init_input()
+        if key == 'processing.volume':
+            # Clear playback queue on volume change to make it feel responsive
+            while not self.playback_queue.empty():
+                try: self.playback_queue.get_nowait()
+                except queue.Empty: break
 
     def handle_key(self, char):
         if char == 'q':
@@ -96,14 +103,26 @@ class AudioVisualizerApp:
         # Apply transformations (volume, pitch, etc.)
         processed_data = self.processor.apply_transformations(data)
         
-        # Play audio back
-        self.output.play(processed_data)
+        # Push to playback queue
+        try:
+            self.playback_queue.put(processed_data, timeout=0.1)
+        except queue.Full:
+            pass
         
-        # Push to visualization queue (non-blocking if possible)
+        # Push to visualization queue (non-blocking)
         try:
             self.viz_queue.put_nowait(processed_data)
         except queue.Full:
             pass
+
+    def playback_loop(self):
+        while self.running:
+            try:
+                data = self.playback_queue.get(timeout=0.1)
+                self.output.play(data)
+                self.playback_queue.task_done()
+            except queue.Empty:
+                continue
 
     def visualization_loop(self):
         while self.running:
@@ -161,9 +180,12 @@ class AudioVisualizerApp:
         self.server.start()
         self.keyboard.start()
         
-        # Start visualization thread
+        # Start threads
         self.viz_thread = threading.Thread(target=self.visualization_loop, daemon=True)
         self.viz_thread.start()
+        
+        self.playback_thread = threading.Thread(target=self.playback_loop, daemon=True)
+        self.playback_thread.start()
         
         self.input.start()
         
@@ -180,6 +202,8 @@ class AudioVisualizerApp:
         self.output.stop()
         if self.viz_thread:
             self.viz_thread.join(timeout=1.0)
+        if self.playback_thread:
+            self.playback_thread.join(timeout=1.0)
 
 if __name__ == "__main__":
     app = AudioVisualizerApp()
