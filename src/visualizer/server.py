@@ -115,6 +115,9 @@ class VisualizerServer:
                 print(f"Error in broadcast_worker: {e}")
 
     def start(self):
+        print(f"[*] Browser visualizer starting at http://{self.host}:{self.port}")
+        if self.host == '0.0.0.0':
+            print(f"[*] You can also try http://localhost:{self.port}")
         self.thread = threading.Thread(target=self._run)
         self.thread.daemon = True
         self.thread.start()
