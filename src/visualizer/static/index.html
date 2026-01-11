@@ -1,101 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AudioVisualizer</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: #111;
-            color: #eee;
-            font-family: sans-serif;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-zinc-950 text-zinc-100 font-sans overflow-hidden h-screen flex;
+            }
         }
-        #canvas {
-            flex-grow: 1;
-            width: 100%;
-        }
-        #controls {
-            padding: 10px;
-            background: #222;
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        .control-group {
-            display: flex;
-            flex-direction: column;
-        }
-        label {
-            font-size: 12px;
-            margin-bottom: 4px;
+        input[type="range"] {
+            @apply h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-500;
         }
     </style>
 </head>
 <body>
-    <div id="controls">
-        <div class="control-group">
-            <label>Volume</label>
-            <input type="range" id="volume" min="0" max="2" step="0.1" value="1.0">
+    <!-- Sidebar -->
+    <div id="sidebar" class="w-80 bg-zinc-900 border-r border-zinc-800 flex flex-col h-full overflow-y-auto shrink-0 p-6 space-y-6">
+        <div class="flex items-center justify-between">
+            <h1 class="text-xl font-bold tracking-tight text-indigo-400">AudioViz</h1>
+            <div id="status" class="text-[10px] px-2 py-0.5 rounded-full bg-red-900/30 text-red-400 border border-red-800/50">Disconnected</div>
         </div>
-        <div class="control-group">
-            <label>Pitch</label>
-            <input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.0">
+
+        <!-- Controls -->
+        <div class="space-y-4">
+            <div class="control-group flex flex-col space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Volume</label>
+                    <span id="volumeVal" class="text-xs text-indigo-400">1.0</span>
+                </div>
+                <input type="range" id="volume" min="0" max="2" step="0.1" value="1.0">
+            </div>
+
+            <div class="control-group flex flex-col space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Pitch</label>
+                    <span id="pitchVal" class="text-xs text-indigo-400">1.0</span>
+                </div>
+                <input type="range" id="pitch" min="0.5" max="2.0" step="0.1" value="1.0">
+            </div>
+
+            <div class="control-group flex flex-col space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Timescale</label>
+                    <span id="timescaleVal" class="text-xs text-indigo-400">1.0</span>
+                </div>
+                <input type="range" id="timescale" min="0.1" max="2.0" step="0.1" value="1.0">
+            </div>
+
+            <hr class="border-zinc-800">
+
+            <div class="control-group flex flex-col space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Modulation</label>
+                    <span id="modFreqVal" class="text-xs text-indigo-400">0Hz</span>
+                </div>
+                <input type="range" id="modFreq" min="0" max="1000" step="10" value="0">
+                <select id="modType" class="bg-zinc-800 border border-zinc-700 text-sm rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <option value="ring">Ring Modulation</option>
+                    <option value="am">Amplitude Modulation</option>
+                </select>
+            </div>
+
+            <div class="control-group flex flex-col space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Filters</label>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex flex-col space-y-1">
+                        <div class="flex justify-between"><span class="text-[10px] text-zinc-500">LPF</span><span id="lpfVal" class="text-[10px] text-indigo-400">20k</span></div>
+                        <input type="range" id="lpf" min="100" max="20000" step="500" value="20000">
+                    </div>
+                    <div class="flex flex-col space-y-1">
+                        <div class="flex justify-between"><span class="text-[10px] text-zinc-500">HPF</span><span id="hpfVal" class="text-[10px] text-indigo-400">0</span></div>
+                        <input type="range" id="hpf" min="0" max="10000" step="100" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-zinc-800">
+
+            <div class="control-group flex flex-col space-y-2">
+                <label class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Appearance</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="colorProfile" class="bg-zinc-800 border border-zinc-700 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <option value="default">Default</option>
+                    </select>
+                    <select id="vizMode" class="bg-zinc-800 border border-zinc-700 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <option value="bars">Bars</option>
+                        <option value="spectrogram">Spectrogram</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group flex flex-col space-y-2">
+                <label class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Source</label>
+                <select id="audioFile" class="bg-zinc-800 border border-zinc-700 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <option value="">Microphone</option>
+                </select>
+            </div>
         </div>
-        <div class="control-group">
-            <label>Timescale</label>
-            <input type="range" id="timescale" min="0.1" max="2.0" step="0.1" value="1.0">
+
+        <div class="mt-auto pt-6">
+            <button id="recordBtn" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-2 px-4 rounded-md border border-zinc-700 transition-colors flex items-center justify-center space-x-2">
+                <div id="recordDot" class="w-2 h-2 rounded-full bg-zinc-500"></div>
+                <span>Start Recording</span>
+            </button>
         </div>
-        <div class="control-group">
-            <label>Modulation Freq</label>
-            <input type="range" id="modFreq" min="0" max="1000" step="10" value="0">
-        </div>
-        <div class="control-group">
-            <label>Mod Type</label>
-            <select id="modType">
-                <option value="ring">Ring</option>
-                <option value="am">AM</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label>LPF Cutoff</label>
-            <input type="range" id="lpf" min="100" max="20000" step="500" value="20000">
-        </div>
-        <div class="control-group">
-            <label>HPF Cutoff</label>
-            <input type="range" id="hpf" min="0" max="10000" step="100" value="0">
-        </div>
-        <div class="control-group">
-            <label>Color Profile</label>
-            <select id="colorProfile">
-                <option value="default">Default</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label>Viz Mode</label>
-            <select id="vizMode">
-                <option value="bars">Bars</option>
-                <option value="spectrogram">Spectrogram</option>
-                <option value="both">Both</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label>Audio File</label>
-            <select id="audioFile">
-                <option value="">None</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label>Record</label>
-            <button id="recordBtn" style="background: #444; color: white; border: none; padding: 5px 10px; cursor: pointer;">Record</button>
-        </div>
-        <div id="status">Disconnected</div>
     </div>
-    <canvas id="canvas"></canvas>
+
+    <!-- Main Canvas -->
+    <div class="flex-grow relative bg-black">
+        <canvas id="canvas" class="w-full h-full"></canvas>
+    </div>
 
     <script>
         const canvas = document.getElementById('canvas');
@@ -105,7 +125,6 @@
         const audioFileSelect = document.getElementById('audioFile');
         
         let bars = [];
-        let history = [];
         const maxHistory = 400;
         let profiles = {};
         let config = {};
@@ -115,19 +134,19 @@
         const sCtx = spectrogramCanvas.getContext('2d');
 
         function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - document.getElementById('controls').offsetHeight;
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
             spectrogramCanvas.width = canvas.width;
             spectrogramCanvas.height = maxHistory;
         }
         window.addEventListener('resize', resize);
-        resize();
+        setTimeout(resize, 100);
 
         const ws = new WebSocket(`ws://${location.host}/ws`);
         
         ws.onopen = () => {
             status.textContent = 'Connected';
-            status.style.color = 'green';
+            status.className = 'text-[10px] px-2 py-0.5 rounded-full bg-green-900/30 text-green-400 border border-green-800/50';
             fetchFiles();
         };
 
@@ -135,7 +154,7 @@
             try {
                 const resp = await fetch('/files');
                 const data = await resp.json();
-                audioFileSelect.innerHTML = '<option value="">Select File...</option>';
+                audioFileSelect.innerHTML = '<option value="">Microphone</option>';
                 data.files.forEach(f => {
                     const option = document.createElement('option');
                     option.value = f;
@@ -149,7 +168,7 @@
         
         ws.onclose = () => {
             status.textContent = 'Disconnected';
-            status.style.color = 'red';
+            status.className = 'text-[10px] px-2 py-0.5 rounded-full bg-red-900/30 text-red-400 border border-red-800/50';
         };
         
         ws.onmessage = (event) => {
@@ -169,26 +188,43 @@
 
         function updateRecordingUI(isRecording) {
             const btn = document.getElementById('recordBtn');
+            const dot = document.getElementById('recordDot');
+            const span = btn.querySelector('span');
             if (isRecording) {
-                btn.style.backgroundColor = 'red';
-                btn.textContent = 'Stop Recording';
+                btn.classList.add('bg-red-950', 'border-red-800', 'text-red-400');
+                btn.classList.remove('bg-zinc-800');
+                dot.classList.add('bg-red-500', 'animate-pulse');
+                dot.classList.remove('bg-zinc-500');
+                span.textContent = 'Stop Recording';
             } else {
-                btn.style.backgroundColor = '#444';
-                btn.textContent = 'Record';
+                btn.classList.remove('bg-red-950', 'border-red-800', 'text-red-400');
+                btn.classList.add('bg-zinc-800');
+                dot.classList.remove('bg-red-500', 'animate-pulse');
+                dot.classList.add('bg-zinc-500');
+                span.textContent = 'Start Recording';
             }
         }
 
         function updateUI() {
-            // Update sliders
-            document.getElementById('volume').value = getNestedValue(config, 'processing.volume', 1.0);
-            document.getElementById('pitch').value = getNestedValue(config, 'processing.pitch', 1.0);
-            document.getElementById('timescale').value = getNestedValue(config, 'processing.timescale', 1.0);
-            document.getElementById('modFreq').value = getNestedValue(config, 'processing.modulation_freq', 0);
+            const controls = [
+                { id: 'volume', key: 'processing.volume', suffix: '' },
+                { id: 'pitch', key: 'processing.pitch', suffix: '' },
+                { id: 'timescale', key: 'processing.timescale', suffix: '' },
+                { id: 'modFreq', key: 'processing.modulation_freq', suffix: 'Hz' },
+                { id: 'lpf', key: 'processing.lpf_cutoff', suffix: '' },
+                { id: 'hpf', key: 'processing.hpf_cutoff', suffix: '' }
+            ];
+
+            controls.forEach(c => {
+                const val = getNestedValue(config, c.key, 0);
+                const el = document.getElementById(c.id);
+                if (el) el.value = val;
+                const valEl = document.getElementById(c.id + 'Val');
+                if (valEl) valEl.textContent = typeof val === 'number' ? val.toFixed(c.suffix === 'Hz' ? 0 : 1) + c.suffix : val;
+            });
+
             document.getElementById('modType').value = getNestedValue(config, 'processing.modulation_type', 'ring');
-            document.getElementById('lpf').value = getNestedValue(config, 'processing.lpf_cutoff', 20000);
-            document.getElementById('hpf').value = getNestedValue(config, 'processing.hpf_cutoff', 0);
             
-            // Update profile selector
             const currentProfile = getNestedValue(config, 'terminal.color_profile', 'default');
             colorProfileSelect.innerHTML = '';
             for (const name in profiles) {
@@ -199,7 +235,6 @@
                 colorProfileSelect.appendChild(option);
             }
 
-            // Update file selector
             const currentFile = getNestedValue(config, 'audio.file_path', '');
             for (let i = 0; i < audioFileSelect.options.length; i++) {
                 if (audioFileSelect.options[i].value === currentFile) {
@@ -263,7 +298,7 @@
 
             // Update Spectrogram Offscreen
             const imgData = sCtx.getImageData(0, 0, spectrogramCanvas.width, spectrogramCanvas.height);
-            sCtx.putImageData(imgData, 0, 1); // Shift down
+            sCtx.putImageData(imgData, 0, 1); 
             
             const barWidth = spectrogramCanvas.width / currentBars.length;
             const maxVal = Math.max(...currentBars, 1);
@@ -319,73 +354,26 @@
         draw();
 
         // Control handlers
-        document.getElementById('volume').oninput = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.volume': parseFloat(e.target.value) }
-            }));
+        const sendUpdate = (key, val) => {
+            ws.send(JSON.stringify({ type: 'config_update', data: { [key]: val } }));
         };
-        document.getElementById('pitch').oninput = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.pitch': parseFloat(e.target.value) }
-            }));
-        };
-        document.getElementById('timescale').oninput = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.timescale': parseFloat(e.target.value) }
-            }));
-        };
-        document.getElementById('modFreq').oninput = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.modulation_freq': parseFloat(e.target.value) }
-            }));
-        };
-        document.getElementById('modType').onchange = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.modulation_type': e.target.value }
-            }));
-        };
-        document.getElementById('lpf').oninput = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.lpf_cutoff': parseFloat(e.target.value) }
-            }));
-        };
-        document.getElementById('hpf').oninput = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'processing.hpf_cutoff': parseFloat(e.target.value) }
-            }));
-        };
-        document.getElementById('recordBtn').onclick = (e) => {
-            ws.send(JSON.stringify({
-                type: 'toggle_recording'
-            }));
-        };
-        colorProfileSelect.onchange = (e) => {
-            ws.send(JSON.stringify({
-                type: 'config_update',
-                data: { 'terminal.color_profile': e.target.value }
-            }));
-        };
+
+        document.getElementById('volume').oninput = (e) => sendUpdate('processing.volume', parseFloat(e.target.value));
+        document.getElementById('pitch').oninput = (e) => sendUpdate('processing.pitch', parseFloat(e.target.value));
+        document.getElementById('timescale').oninput = (e) => sendUpdate('processing.timescale', parseFloat(e.target.value));
+        document.getElementById('modFreq').oninput = (e) => sendUpdate('processing.modulation_freq', parseFloat(e.target.value));
+        document.getElementById('modType').onchange = (e) => sendUpdate('processing.modulation_type', e.target.value);
+        document.getElementById('lpf').oninput = (e) => sendUpdate('processing.lpf_cutoff', parseFloat(e.target.value));
+        document.getElementById('hpf').oninput = (e) => sendUpdate('processing.hpf_cutoff', parseFloat(e.target.value));
+        document.getElementById('recordBtn').onclick = (e) => ws.send(JSON.stringify({ type: 'toggle_recording' }));
+        colorProfileSelect.onchange = (e) => sendUpdate('terminal.color_profile', e.target.value);
         document.getElementById('vizMode').onchange = (e) => {
             vizMode = e.target.value;
             sCtx.clearRect(0, 0, spectrogramCanvas.width, spectrogramCanvas.height);
         };
         audioFileSelect.onchange = (e) => {
-            if (e.target.value) {
-                ws.send(JSON.stringify({
-                    type: 'config_update',
-                    data: { 
-                        'audio.file_path': e.target.value,
-                        'audio.input_type': 'file'
-                    }
-                }));
-            }
+            sendUpdate('audio.file_path', e.target.value);
+            sendUpdate('audio.input_type', e.target.value ? 'file' : 'microphone');
         };
     </script>
 </body>
