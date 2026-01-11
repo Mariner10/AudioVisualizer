@@ -58,8 +58,12 @@ class AudioProcessor:
         """
         volume = self.config_manager.get('processing.volume', 1.0)
         pitch = self.config_manager.get('processing.pitch', 1.0)
+        timescale = self.config_manager.get('processing.timescale', 1.0)
         modulation_freq = self.config_manager.get('processing.modulation_freq', 0.0)
         modulation_type = self.config_manager.get('processing.modulation_type', 'ring')
+        
+        # Combined resampling factor
+        resample_factor = pitch * timescale
         
         # Convert to float for processing
         audio_float = data.astype(np.float32)
@@ -68,11 +72,11 @@ class AudioProcessor:
         if self.channels > 1:
             audio_float = audio_float.reshape(-1, self.channels)
         
-        # Apply Pitch Shifting (simple resampling)
-        if pitch != 1.0 and pitch > 0:
+        # Apply Resampling (Pitch + Timescale)
+        if resample_factor != 1.0 and resample_factor > 0:
             num_samples = len(audio_float)
             old_indices = np.arange(num_samples)
-            new_indices = np.arange(0, num_samples, pitch)
+            new_indices = np.arange(0, num_samples, resample_factor)
             
             if self.channels > 1:
                 # Interp each channel separately
