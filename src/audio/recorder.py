@@ -1,12 +1,14 @@
 import wave
 import os
 import time
+from utils.state import RecordingState
 
 from utils.logger import logger
 
 class AudioRecorder:
-    def __init__(self, config_manager):
+    def __init__(self, config_manager, state_machine=None):
         self.config_manager = config_manager
+        self.state_machine = state_machine
         self.recording = False
         self.wave_file = None
         self.file_path = None
@@ -30,6 +32,8 @@ class AudioRecorder:
             self.wave_file.setsampwidth(2) # 16-bit
             self.wave_file.setframerate(sample_rate)
             self.recording = True
+            if self.state_machine:
+                self.state_machine.set_recording_state(RecordingState.RECORDING)
             logger.info(f"Started recording to {self.file_path}")
         except Exception as e:
             logger.error(f"Failed to start recording: {e}")
@@ -39,6 +43,8 @@ class AudioRecorder:
             return
             
         self.recording = False
+        if self.state_machine:
+            self.state_machine.set_recording_state(RecordingState.IDLE)
         if self.wave_file:
             try:
                 self.wave_file.close()

@@ -29,7 +29,7 @@ class AudioVisualizerApp:
         
         self.processor = AudioProcessor(self.config_manager)
         self.output = AudioOutput(self.config_manager)
-        self.recorder = AudioRecorder(self.config_manager)
+        self.recorder = AudioRecorder(self.config_manager, self.state_machine)
         self.terminal_visualizer = TerminalVisualizer(self.config_manager)
         self.server = VisualizerServer(self.config_manager)
         self.server.on_toggle_recording = self.recorder.toggle
@@ -159,6 +159,7 @@ class AudioVisualizerApp:
 
     def playback_loop(self):
         logger.info("Starting playback loop")
+        self.state_machine.set_playback_state(PlaybackState.PLAYING)
         while self.running:
             try:
                 data = self.playback_queue.get(timeout=0.1)
@@ -166,6 +167,7 @@ class AudioVisualizerApp:
                 self.playback_queue.task_done()
             except queue.Empty:
                 continue
+        self.state_machine.set_playback_state(PlaybackState.STOPPED)
 
     def visualization_loop(self):
         logger.info("Starting visualization loop")
