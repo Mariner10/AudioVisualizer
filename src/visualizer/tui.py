@@ -9,12 +9,14 @@ from rich.text import Text
 from rich.console import Console, ConsoleOptions, RenderResult
 from rich.measure import Measurement
 import asyncio
+from .utils import get_hex_gradient
 
 class VisualizerWidget(Static):
     """Custom widget for audio visualization using Braille characters."""
     bars = reactive([])
     display_type = reactive("bar")
     color_profile = reactive("default")
+    profiles = reactive({})
 
     def render(self) -> RenderResult:
         if not self.bars or len(self.bars) == 0:
@@ -38,27 +40,44 @@ class VisualizerWidget(Static):
         
         max_val = np.max(bars) if np.max(bars) > 0 else 1
         
+        profile = self.profiles.get(self.color_profile, self.profiles.get('default', {}))
+        
         if self.display_type == "braille":
-            return self._render_braille(bars, width, height, max_val)
+            return self._render_braille(bars, width, height, max_val, profile)
         else:
-            return self._render_bars(bars, width, height, max_val)
+            return self._render_bars(bars, width, height, max_val, profile)
 
-    def _render_bars(self, bars, width, height, max_val) -> Text:
+    def _get_colors(self, bars, profile):
+        profile_type = profile.get('type', 'frequency')
+        colors = profile.get('colors', ['#ffffff'])
+        
+        if profile_type == 'solid':
+            return [profile.get('color', colors[0])] * len(bars)
+            
+        if profile_type == 'amplitude':
+            max_val = np.max(bars) if np.max(bars) > 0 else 1
+            gradient = get_hex_gradient(colors, 100)
+            return [gradient[int(min(v / max_val * 99, 99))] for v in bars]
+            
+        return get_hex_gradient(colors, len(bars))
+
+    def _render_bars(self, bars, width, height, max_val, profile) -> Text:
         scaled_bars = (bars / max_val * height).astype(int)
+        colors = self._get_colors(bars, profile)
         
-        lines = []
+        text = Text()
         for h in range(height - 1, -1, -1):
-            chars = []
-            for val in scaled_bars:
+            for i, val in enumerate(scaled_bars):
                 if val > h:
-                    chars.append("┃")
+                    text.append("┃", style=colors[i])
                 else:
-                    chars.append(" ")
-            lines.append("".join(chars))
+                    text.append(" ")
+            if h > 0:
+                text.append("\n")
         
-        return Text("\n".join(lines), style="green")
+        return text
 
-    def _render_braille(self, bars, width, height, max_val) -> Text:
+    def _render_braille(self, bars, width, height, max_val, profile) -> Text:
         # Braille dots: 2 wide, 4 high
         dot_width = width * 2
         dot_height = height * 4
@@ -68,10 +87,10 @@ class VisualizerWidget(Static):
             bars = bars[indices]
             
         scaled_bars = (bars / max_val * dot_height).astype(int)
+        colors = self._get_colors(bars[::2], profile)
         
-        lines = []
+        text = Text()
         for row in range(height - 1, -1, -1):
-            line_chars = []
             for col in range(0, dot_width, 2):
                 left_val = scaled_bars[col]
                 right_val = scaled_bars[col+1] if col+1 < dot_width else 0
@@ -92,10 +111,11 @@ class VisualizerWidget(Static):
                 if r_fill > 3: code |= (1 << 7)
                 
                 char = chr(0x2800 + code) if code > 0 else " "
-                line_chars.append(char)
-            lines.append("".join(line_chars))
-            
-        return Text("\n".join(lines), style="cyan")
+                text.append(char, style=colors[col//2])
+            if row > 0:
+                text.append("\n")
+        
+        return text
 
 class SettingsSidebar(Vertical):
     """Sidebar for settings."""
@@ -190,6 +210,7 @@ class AudioVisualizerTUI(App):
         Binding("minus", "decrement_volume", "Vol-"),
         Binding("r", "toggle_recording", "Record"),
         Binding("t", "cycle_display_type", "Display"),
+        Binding("p", "cycle_color_profile", "Colors"),
         Binding("right_bracket", "increment_pitch", "Pitch+"),
         Binding("left_bracket", "decrement_pitch", "Pitch-"),
     ]
@@ -231,6 +252,11 @@ class AudioVisualizerTUI(App):
         viz = self.query_one(VisualizerWidget)
         viz.display_type = self.config_manager.get('terminal.display_type', 'bar')
 
+    def action_cycle_color_profile(self) -> None:
+        self.app_instance.handle_key('p')
+        viz = self.query_one(VisualizerWidget)
+        viz.color_profile = self.config_manager.get('terminal.color_profile', 'default')
+
     def action_toggle_recording(self) -> None:
         self.app_instance.handle_key('r')
         self.query_one("#recording-switch").value = self.app_instance.recorder.recording
@@ -242,7 +268,10 @@ class AudioVisualizerTUI(App):
         self.query_one("#ts-bar").progress = int(self.config_manager.get('processing.timescale', 1.0) * 100)
 
     def on_mount(self) -> None:
-        self.query_one(VisualizerWidget).display_type = self.config_manager.get('terminal.display_type', 'bar')
+        viz = self.query_one(VisualizerWidget)
+        viz.display_type = self.config_manager.get('terminal.display_type', 'bar')
+        viz.color_profile = self.config_manager.get('terminal.color_profile', 'default')
+        viz.profiles = self.app_instance.terminal_visualizer.color_profiles
         self._sync_sliders()
 
     def set_bars(self, bars):
