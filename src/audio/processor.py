@@ -22,6 +22,35 @@ class AudioProcessor:
         self.cached_window = None
         self.cached_frequencies = None
         self.last_fft_len = 0
+        
+        # Peak tracking
+        self.peaks = None
+        self.peak_fall_speed = 0.95 # Factor to multiply peak by each frame
+
+        # Beat detection
+        self.energy_history = []
+        self.history_size = 43 # roughly 1 second at 43 fps
+        self.beat_threshold = 1.3
+
+    def detect_beat(self, magnitudes, frequencies):
+        """
+        Simple beat detection based on low-frequency energy.
+        """
+        # Focus on 20Hz - 150Hz
+        mask = (frequencies >= 20) & (frequencies <= 150)
+        low_energy = np.mean(magnitudes[mask]) if np.any(mask) else 0
+        
+        is_beat = False
+        if len(self.energy_history) > 0:
+            avg_energy = np.mean(self.energy_history)
+            if low_energy > avg_energy * self.beat_threshold:
+                is_beat = True
+                
+        self.energy_history.append(low_energy)
+        if len(self.energy_history) > self.history_size:
+            self.energy_history.pop(0)
+            
+        return is_beat
 
     def apply_transformations(self, data):
         """

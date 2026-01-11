@@ -14,9 +14,16 @@ from .utils import get_hex_gradient
 class VisualizerWidget(Static):
     """Custom widget for audio visualization using Braille characters."""
     bars = reactive([])
+    is_beat = reactive(False)
     display_type = reactive("bar")
     color_profile = reactive("default")
     profiles = reactive({})
+
+    def watch_is_beat(self, is_beat: bool) -> None:
+        if is_beat:
+            self.styles.border = ("solid", "yellow")
+        else:
+            self.styles.border = ("solid", "green")
 
     def render(self) -> RenderResult:
         if not self.bars or len(self.bars) == 0:
@@ -274,8 +281,10 @@ class AudioVisualizerTUI(App):
         viz.profiles = self.app_instance.terminal_visualizer.color_profiles
         self._sync_sliders()
 
-    def set_bars(self, bars):
-        self.query_one(VisualizerWidget).bars = bars
+    def set_bars(self, bars, is_beat=False):
+        viz = self.query_one(VisualizerWidget)
+        viz.bars = bars
+        viz.is_beat = is_beat
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "reset-button":

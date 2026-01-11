@@ -125,6 +125,7 @@
         const audioFileSelect = document.getElementById('audioFile');
         
         let bars = [];
+        let isBeat = false;
         const maxHistory = 400;
         let profiles = {};
         let config = {};
@@ -175,6 +176,7 @@
             const data = JSON.parse(event.data);
             if (data.type === 'visualization') {
                 bars = data.bars;
+                isBeat = data.is_beat;
                 updateRecordingUI(data.recording);
             } else if (data.type === 'init') {
                 profiles = data.profiles;
@@ -284,7 +286,8 @@
         }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = isBeat ? '#0a0a1a' : '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             if (bars.length === 0) {
                 requestAnimationFrame(draw);
@@ -328,7 +331,8 @@
                     const yOffset = cIdx * channelHeight;
 
                     channelBars.forEach((val, i) => {
-                        const barHeight = (val / mVal) * channelHeight;
+                        let barHeight = (val / mVal) * channelHeight;
+                        if (isBeat) barHeight *= 1.1; // Pulse on beat
                         
                         if (profile.type === 'solid') {
                             ctx.fillStyle = profile.color || profile.colors[0];

@@ -9,7 +9,6 @@ import os
 from utils.logger import logger
 
 class VisualizerServer:
-...
     async def broadcast_worker(self):
         while True:
             try:
@@ -76,7 +75,7 @@ class VisualizerServer:
         if hasattr(self, 'server'):
             self.server.should_exit = True
 
-    def send_data(self, bars, audio_data=None):
+    def send_data(self, bars, audio_data=None, is_beat=False):
         """
         Queue FFT data and optionally audio data to all connected clients.
         """
@@ -88,6 +87,7 @@ class VisualizerServer:
         data = {
             "type": "visualization",
             "bars": bars_data,
-            "recording": self.is_recording()
+            "recording": self.is_recording(),
+            "is_beat": is_beat
         }
         self.queue.put(data)

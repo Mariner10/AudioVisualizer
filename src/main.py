@@ -180,12 +180,16 @@ class AudioVisualizerApp:
             # Process FFT
             magnitudes, frequencies = self.processor.process_fft(processed_data)
             
+            # Simple beat detection (use the first channel if stereo)
+            m_beat = magnitudes[0] if isinstance(magnitudes, list) else magnitudes
+            is_beat = self.processor.detect_beat(m_beat, frequencies)
+
             # Get bars for visualization
             num_bars = self.config_manager.get('visualizer.num_bars', 64)
             bars = self.processor.get_bars(magnitudes, frequencies, num_bars=num_bars)
             
             # Send to browser
-            self.server.send_data(bars)
+            self.server.send_data(bars, is_beat=is_beat)
             
             # Render in terminal if enabled
             if self.config_manager.get('visualizer.type') == 'terminal':
@@ -195,7 +199,7 @@ class AudioVisualizerApp:
                     terminal_bars = np.mean(bars, axis=0)
                 
                 if self.tui:
-                    self.tui.call_from_thread(self.tui.set_bars, terminal_bars)
+                    self.tui.call_from_thread(self.tui.set_bars, terminal_bars, is_beat=is_beat)
                 elif self.show_menu:
                     self.render_menu()
                 else:
