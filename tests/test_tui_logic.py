@@ -26,8 +26,9 @@ class TestTUILogic(unittest.TestCase):
         max_val = 4
         width = 1
         height = 1
+        profile = {"type": "solid", "colors": ["#ffffff"]}
         
-        result = widget._render_braille(bars, width, height, max_val)
+        result = widget._render_braille(bars, width, height, max_val, profile)
         char = str(result).strip()
         self.assertEqual(len(char), 1)
         self.assertEqual(ord(char), 0x2800 + 0xFF) # Full braille block since both are 4/4
