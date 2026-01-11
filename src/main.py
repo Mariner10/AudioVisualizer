@@ -13,12 +13,16 @@ from audio.recorder import AudioRecorder
 from visualizer.terminal import TerminalVisualizer
 from visualizer.server import VisualizerServer
 from utils.keyboard import KeyboardHandler
+from utils.state import StateMachine, AppState, PlaybackState, RecordingState
 
 from utils.logger import logger
 
 class AudioVisualizerApp:
     def __init__(self, config_path="config/default.yaml"):
         logger.info(f"Initializing AudioVisualizerApp with config: {config_path}")
+        self.state_machine = StateMachine()
+        self.state_machine.set_app_state(AppState.STARTING)
+        
         self.config_manager = ConfigManager(config_path)
         self.config = self.config_manager.config
         self.config_manager.register_callback(self.on_config_change)
@@ -224,6 +228,7 @@ class AudioVisualizerApp:
     def start(self):
         logger.info("Starting AudioVisualizer application")
         self.running = True
+        self.state_machine.set_app_state(AppState.RUNNING)
         self.server.start()
         
         # Start threads
@@ -255,6 +260,29 @@ class AudioVisualizerApp:
                     time.sleep(0.1)
             except KeyboardInterrupt:
                 self.stop()
+
+    def stop(self):
+        if not self.running:
+            return
+            
+        logger.info("Stopping AudioVisualizer application")
+        self.running = False
+        self.state_machine.set_app_state(AppState.STOPPING)
+        
+        if self.input:
+            self.input.stop()
+        if self.output:
+            self.output.stop()
+        if self.recorder:
+            self.recorder.stop()
+        if self.server:
+            self.server.stop()
+        if self.keyboard:
+            self.keyboard.stop()
+            
+        self.state_machine.set_app_state(AppState.IDLE)
+
+
 
 
 
