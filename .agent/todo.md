@@ -7,4 +7,4 @@
 - [x] Expand test coverage
 - [x] Implement a proper state machine for audio playback/recording
 - [x] Optimize FFT processing (check performance)
-- [ ] Final documentation update
+- [x] Final documentation update
