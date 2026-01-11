@@ -6,14 +6,18 @@ A vastly customizable audio tool with visualizer that can utilize the live micro
 
 - **Multi-Frontend Support**: 
   - **Terminal**: High-resolution visualization using Braille dots, ASCII bars, and more. Includes a live settings menu and keybindings.
-  - **Browser**: Smooth, colorful rendering using HTML5 Canvas and WebSockets for real-time data.
+  - **Browser**: Smooth, colorful rendering using HTML5 Canvas, WebSockets, and Tailwind CSS for a modern look.
 - **Advanced Audio Processing**:
-  - **High Performance**: Optimized using Numpy/Scipy with decoupled visualization threads for minimal audio latency.
+  - **High Performance**: Optimized using Numpy/Scipy with cached FFT windows and decoupled visualization threads.
+  - **Robust State Management**: Built-in State Machine tracks App, Playback, and Recording statuses for better stability.
   - Live editing of **Volume**, **Pitch**, and **Timescale**.
   - **Filters**: Real-time **Low Pass (LPF)** and **High Pass (HPF)** filters with adjustable cutoff frequencies.
   - **Modulation**: Ring Modulation and Amplitude Modulation (AM) with persistent phase to prevent audio clicks.
   - **Recording**: Save processed audio directly to WAV files from either the terminal or browser interface.
   - **Stereo Support**: Independent FFT processing and correct multi-channel transformation handling.
+- **Modern UI**:
+  - **Terminal**: Robust TUI built with `Textual`, featuring live sliders, toggles, and high-resolution visualization.
+  - **Browser**: Responsive design using Tailwind CSS.
 - **Customizable Color Profiles**:
   - Define profiles in `config/colors.yaml`.
   - Support for **Frequency-based**, **Amplitude-based**, and **Solid** color modes.
