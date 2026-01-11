@@ -1,6 +1,6 @@
 import numpy as np
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static, Label, Slider, Switch, Button
+from textual.widgets import Header, Footer, Static, Label, ProgressBar, Switch, Button
 from textual.containers import Container, Horizontal, Vertical, Grid
 from textual.binding import Binding
 from textual.reactive import reactive
@@ -104,15 +104,24 @@ class SettingsSidebar(Vertical):
         
         with Vertical(classes="setting-group"):
             yield Label("Volume")
-            yield Slider(min=0, max=200, value=100, id="volume-slider")
+            with Horizontal():
+                yield Button("-", id="vol-down", classes="small-btn")
+                yield ProgressBar(total=200, show_bar=True, show_eta=False, id="volume-bar")
+                yield Button("+", id="vol-up", classes="small-btn")
             
         with Vertical(classes="setting-group"):
             yield Label("Pitch")
-            yield Slider(min=10, max=200, value=100, id="pitch-slider")
+            with Horizontal():
+                yield Button("-", id="pitch-down", classes="small-btn")
+                yield ProgressBar(total=200, show_bar=True, show_eta=False, id="pitch-bar")
+                yield Button("+", id="pitch-up", classes="small-btn")
 
         with Vertical(classes="setting-group"):
             yield Label("Timescale")
-            yield Slider(min=10, max=200, value=100, id="timescale-slider")
+            with Horizontal():
+                yield Button("-", id="ts-down", classes="small-btn")
+                yield ProgressBar(total=200, show_bar=True, show_eta=False, id="ts-bar")
+                yield Button("+", id="ts-up", classes="small-btn")
             
         with Horizontal(classes="setting-group"):
             yield Label("Recording")
@@ -158,6 +167,19 @@ class AudioVisualizerTUI(App):
     .help-text {
         font-size: 80%;
         color: $text-muted;
+    }
+    
+    .small-btn {
+        min-width: 4;
+        width: 4;
+        height: 1;
+        border: none;
+        background: $accent;
+        margin: 0 1;
+    }
+    
+    ProgressBar {
+        width: 1fr;
     }
     """
 
@@ -214,10 +236,10 @@ class AudioVisualizerTUI(App):
         self.query_one("#recording-switch").value = self.app_instance.recorder.recording
 
     def _sync_sliders(self) -> None:
-        """Sync TUI sliders with config values."""
-        self.query_one("#volume-slider").value = int(self.config_manager.get('processing.volume', 1.0) * 100)
-        self.query_one("#pitch-slider").value = int(self.config_manager.get('processing.pitch', 1.0) * 100)
-        self.query_one("#timescale-slider").value = int(self.config_manager.get('processing.timescale', 1.0) * 100)
+        """Sync TUI bars with config values."""
+        self.query_one("#volume-bar").progress = int(self.config_manager.get('processing.volume', 1.0) * 100)
+        self.query_one("#pitch-bar").progress = int(self.config_manager.get('processing.pitch', 1.0) * 100)
+        self.query_one("#ts-bar").progress = int(self.config_manager.get('processing.timescale', 1.0) * 100)
 
     def on_mount(self) -> None:
         self.query_one(VisualizerWidget).display_type = self.config_manager.get('terminal.display_type', 'bar')
@@ -249,14 +271,20 @@ class AudioVisualizerTUI(App):
         if event.button.id == "reset-button":
             self.app_instance.handle_key('c')
             self._sync_sliders()
-
-    def on_slider_changed(self, event: Slider.Changed) -> None:
-        if event.slider.id == "volume-slider":
-            self.config_manager.set('processing.volume', event.value / 100.0)
-        elif event.slider.id == "pitch-slider":
-            self.config_manager.set('processing.pitch', event.value / 100.0)
-        elif event.slider.id == "timescale-slider":
-            self.config_manager.set('processing.timescale', event.value / 100.0)
+        elif event.button.id == "vol-up":
+            self.action_increment_volume()
+        elif event.button.id == "vol-down":
+            self.action_decrement_volume()
+        elif event.button.id == "pitch-up":
+            self.action_increment_pitch()
+        elif event.button.id == "pitch-down":
+            self.action_decrement_pitch()
+        elif event.button.id == "ts-up":
+            self.app_instance.handle_key('l')
+            self._sync_sliders()
+        elif event.button.id == "ts-down":
+            self.app_instance.handle_key('k')
+            self._sync_sliders()
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         if event.switch.id == "recording-switch":
