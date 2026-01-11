@@ -36,6 +36,7 @@ class AudioVisualizerApp:
         self.playback_queue = queue.Queue(maxsize=5)
         self.viz_thread = None
         self.playback_thread = None
+        self.tui = None
         
         self.input = None
         self.init_input()
@@ -182,14 +183,16 @@ class AudioVisualizerApp:
             
             # Render in terminal if enabled
             if self.config_manager.get('visualizer.type') == 'terminal':
-                if self.show_menu:
+                # If multi-channel, average for terminal
+                terminal_bars = bars
+                if isinstance(bars, list):
+                    terminal_bars = np.mean(bars, axis=0)
+                
+                if self.tui:
+                    self.tui.call_from_thread(self.tui.set_bars, terminal_bars)
+                elif self.show_menu:
                     self.render_menu()
                 else:
-                    # If multi-channel, average for terminal
-                    terminal_bars = bars
-                    if isinstance(bars, list):
-                        terminal_bars = np.mean(bars, axis=0)
-                    
                     display_type = self.config_manager.get('terminal.display_type', 'bar')
                     if display_type == 'braille':
                         self.terminal_visualizer.render_braille(terminal_bars)
@@ -222,7 +225,6 @@ class AudioVisualizerApp:
         logger.info("Starting AudioVisualizer application")
         self.running = True
         self.server.start()
-        self.keyboard.start()
         
         # Start threads
         self.viz_thread = threading.Thread(target=self.visualization_loop, daemon=True)
@@ -232,22 +234,28 @@ class AudioVisualizerApp:
         self.playback_thread.start()
         
         self.input.start()
-        
-        try:
-            while self.running:
-                time.sleep(0.1)
-        except KeyboardInterrupt:
-            self.stop()
 
-    def stop(self):
-        logger.info("Stopping AudioVisualizer application")
-        self.running = False
-        self.input.stop()
-        self.output.stop()
-        if self.viz_thread:
-            self.viz_thread.join(timeout=1.0)
-        if self.playback_thread:
-            self.playback_thread.join(timeout=1.0)
+        if self.config_manager.get('visualizer.type') == 'terminal':
+            try:
+                from visualizer.tui import AudioVisualizerTUI
+                self.tui = AudioVisualizerTUI(self)
+                self.tui.run()
+            except Exception as e:
+                logger.error(f"Failed to start TUI: {e}")
+                # Fallback to keyboard handler
+                self.keyboard.start()
+                while self.running:
+                    time.sleep(0.1)
+            finally:
+                self.stop()
+        else:
+            self.keyboard.start()
+            try:
+                while self.running:
+                    time.sleep(0.1)
+            except KeyboardInterrupt:
+                self.stop()
+
 
 
 if __name__ == "__main__":
