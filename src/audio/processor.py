@@ -17,6 +17,11 @@ class AudioProcessor:
         self.hpf_zi = None
         self.last_lpf_cutoff = None
         self.last_hpf_cutoff = None
+        
+        # FFT Caching
+        self.cached_window = None
+        self.cached_frequencies = None
+        self.last_fft_len = 0
 
     def apply_transformations(self, data):
         """
@@ -136,18 +141,22 @@ class AudioProcessor:
         if len(data) < 2:
             return np.array([]), np.array([])
             
+        # Cache window and frequencies if length changed
+        if len(data) != self.last_fft_len:
+            self.cached_window = np.hanning(len(data))
+            self.cached_frequencies = rfftfreq(len(data), 1 / self.sample_rate)
+            self.last_fft_len = len(data)
+            
         # Windowing to reduce spectral leakage
-        window = np.hanning(len(data))
-        windowed_data = data.astype(np.float32) * window
+        windowed_data = data.astype(np.float32) * self.cached_window
         
         # Perform real FFT
         fft_data = rfft(windowed_data)
         magnitudes = np.abs(fft_data)
-        frequencies = rfftfreq(len(data), 1 / self.sample_rate)
         
         # Filter by frequency range
-        mask = (frequencies >= self.freq_range[0]) & (frequencies <= self.freq_range[1])
-        return magnitudes[mask], frequencies[mask]
+        mask = (self.cached_frequencies >= self.freq_range[0]) & (self.cached_frequencies <= self.freq_range[1])
+        return magnitudes[mask], self.cached_frequencies[mask]
 
     def get_bars(self, magnitudes, frequencies, num_bars=64):
         """
