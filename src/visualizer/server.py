@@ -52,17 +52,29 @@ class VisualizerServer:
             log_level="warning", 
             loop="asyncio"
         )
-        server = uvicorn.Server(config)
+        self.server = uvicorn.Server(config)
         
         # --- CRITICAL FIX ---
         # Disable signal handlers so Uvicorn doesn't crash in a thread
-        server.install_signal_handlers = lambda: None 
+        self.server.install_signal_handlers = lambda: None 
         # --------------------
 
         try:
-            self.loop.run_until_complete(server.serve())
+            self.loop.run_until_complete(self.server.serve())
         except Exception as e:
             logger.error(f"SERVER CRASHED: {e}")
+
+    def stop(self):
+        """Stops the server and the broadcast worker."""
+        logger.info("Stopping VisualizerServer")
+        if hasattr(self, 'queue'):
+            self.queue.put(None) # Signal worker to stop
+            
+        # We don't have a direct reference to the 'server' instance here 
+        # but we can try to stop the loop or set a flag if we had one.
+        # Given how it's started in _run, we'll need to store the server instance.
+        if hasattr(self, 'server'):
+            self.server.should_exit = True
 
     def send_data(self, bars, audio_data=None):
         """
