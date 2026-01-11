@@ -14,8 +14,11 @@ from visualizer.terminal import TerminalVisualizer
 from visualizer.server import VisualizerServer
 from utils.keyboard import KeyboardHandler
 
+from utils.logger import logger
+
 class AudioVisualizerApp:
     def __init__(self, config_path="config/default.yaml"):
+        logger.info(f"Initializing AudioVisualizerApp with config: {config_path}")
         self.config_manager = ConfigManager(config_path)
         self.config = self.config_manager.config
         self.config_manager.register_callback(self.on_config_change)
@@ -41,9 +44,11 @@ class AudioVisualizerApp:
 
     def init_input(self):
         if self.input:
+            logger.info("Stopping existing input stream")
             self.input.stop()
             
         input_type = self.config_manager.get('audio.input_type', 'microphone')
+        logger.info(f"Initializing input type: {input_type}")
         if input_type == 'file':
             self.input = FileInput(self.config_manager)
         else:
@@ -54,6 +59,7 @@ class AudioVisualizerApp:
             self.input.start()
 
     def on_config_change(self, key, value):
+        logger.debug(f"Config changed: {key} = {value}")
         if key in ['audio.input_type', 'audio.file_path']:
             self.init_input()
         if key == 'processing.volume':
@@ -63,6 +69,7 @@ class AudioVisualizerApp:
                 except queue.Empty: break
 
     def handle_key(self, char):
+        logger.debug(f"Key pressed: {char}")
         if char == 'q':
             self.stop()
             sys.exit(0)
@@ -118,6 +125,7 @@ class AudioVisualizerApp:
             self.recorder.toggle()
         elif char == 'c':
             # Reset effects
+            logger.info("Resetting all audio effects")
             self.config_manager.set('processing.volume', 1.0)
             self.config_manager.set('processing.pitch', 1.0)
             self.config_manager.set('processing.timescale', 1.0)
@@ -145,6 +153,7 @@ class AudioVisualizerApp:
             pass
 
     def playback_loop(self):
+        logger.info("Starting playback loop")
         while self.running:
             try:
                 data = self.playback_queue.get(timeout=0.1)
@@ -154,6 +163,7 @@ class AudioVisualizerApp:
                 continue
 
     def visualization_loop(self):
+        logger.info("Starting visualization loop")
         while self.running:
             try:
                 processed_data = self.viz_queue.get(timeout=0.1)
@@ -192,23 +202,24 @@ class AudioVisualizerApp:
 
     def render_menu(self):
         self.terminal_visualizer.clear()
-        print("=== Settings Menu ===")
-        print(f"Volume:     {self.config_manager.get('processing.volume', 1.0):.1f} (+/-)")
-        print(f"Pitch:      {self.config_manager.get('processing.pitch', 1.0):.1f} ([/])")
-        print(f"Timescale:  {self.config_manager.get('processing.timescale', 1.0):.1f} (k/l)")
-        print(f"Mod Freq:   {self.config_manager.get('processing.modulation_freq', 0.0):.1f} (b/n)")
-        print(f"LPF Cutoff: {self.config_manager.get('processing.lpf_cutoff', 20000.0):.0f} (j/u)")
-        print(f"HPF Cutoff: {self.config_manager.get('processing.hpf_cutoff', 0.0):.0f} (h/y)")
-        print(f"Display:    {self.config_manager.get('terminal.display_type', 'bar')} (t)")
-        print(f"Color:      {self.config_manager.get('terminal.color_profile', 'default')} (p)")
-        print(f"Recording:  {'ON' if self.recorder.recording else 'OFF'} (r)")
-        print(f"Input:      {self.config_manager.get('audio.input_type')} ")
-        print(f"File:       {os.path.basename(self.config_manager.get('audio.file_path', 'N/A'))}")
-        print("\nPress 'c' to reset all effects.")
-        print("Press 'm' to close menu, 'q' to quit.")
+        sys.stdout.write("=== Settings Menu ===\n")
+        sys.stdout.write(f"Volume:     {self.config_manager.get('processing.volume', 1.0):.1f} (+/-)\n")
+        sys.stdout.write(f"Pitch:      {self.config_manager.get('processing.pitch', 1.0):.1f} ([/])\n")
+        sys.stdout.write(f"Timescale:  {self.config_manager.get('processing.timescale', 1.0):.1f} (k/l)\n")
+        sys.stdout.write(f"Mod Freq:   {self.config_manager.get('processing.modulation_freq', 0.0):.1f} (b/n)\n")
+        sys.stdout.write(f"LPF Cutoff: {self.config_manager.get('processing.lpf_cutoff', 20000.0):.0f} (j/u)\n")
+        sys.stdout.write(f"HPF Cutoff: {self.config_manager.get('processing.hpf_cutoff', 0.0):.0f} (h/y)\n")
+        sys.stdout.write(f"Display:    {self.config_manager.get('terminal.display_type', 'bar')} (t)\n")
+        sys.stdout.write(f"Color:      {self.config_manager.get('terminal.color_profile', 'default')} (p)\n")
+        sys.stdout.write(f"Recording:  {'ON' if self.recorder.recording else 'OFF'} (r)\n")
+        sys.stdout.write(f"Input:      {self.config_manager.get('audio.input_type')} \n")
+        sys.stdout.write(f"File:       {os.path.basename(self.config_manager.get('audio.file_path', 'N/A'))}\n")
+        sys.stdout.write("\nPress 'c' to reset all effects.\n")
+        sys.stdout.write("Press 'm' to close menu, 'q' to quit.\n")
+        sys.stdout.flush()
 
     def start(self):
-        print("Starting AudioVisualizer...")
+        logger.info("Starting AudioVisualizer application")
         self.running = True
         self.server.start()
         self.keyboard.start()
@@ -229,7 +240,7 @@ class AudioVisualizerApp:
             self.stop()
 
     def stop(self):
-        print("Stopping AudioVisualizer...")
+        logger.info("Stopping AudioVisualizer application")
         self.running = False
         self.input.stop()
         self.output.stop()
@@ -237,6 +248,7 @@ class AudioVisualizerApp:
             self.viz_thread.join(timeout=1.0)
         if self.playback_thread:
             self.playback_thread.join(timeout=1.0)
+
 
 if __name__ == "__main__":
     app = AudioVisualizerApp()
