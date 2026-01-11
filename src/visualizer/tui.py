@@ -244,25 +244,6 @@ class AudioVisualizerTUI(App):
     def on_mount(self) -> None:
         self.query_one(VisualizerWidget).display_type = self.config_manager.get('terminal.display_type', 'bar')
         self._sync_sliders()
-        self.update_visualizer()
-
-    @work(exclusive=True)
-    async def update_visualizer(self) -> None:
-        while True:
-            # We use the viz_queue from the app instance
-            if not self.app_instance.viz_queue.empty():
-                try:
-                    # In a real app we might want to consume from the queue here
-                    # But the main loop also consumes from it.
-                    # Let's see how we can share it.
-                    # For now, let's assume this is the ONLY consumer for terminal viz.
-                    pass
-                except Exception:
-                    pass
-            
-            # Since the main loop is also running, maybe we should have the main loop
-            # push to the TUI instead.
-            await asyncio.sleep(0.05)
 
     def set_bars(self, bars):
         self.query_one(VisualizerWidget).bars = bars
